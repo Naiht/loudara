@@ -323,7 +323,7 @@ export async function fetchCollection(
 
   setListStore('isLoading', false);
 
-  document.title = display + ' - ytify';
+  document.title = display + ' - Loudara';
 
 }
 
@@ -521,5 +521,59 @@ export function cleanseLibraryData() {
       console.log(`Found and removed ${collection.length - validCollection.length} invalid entries from '${key}' collection.`);
       saveCollection(key, validCollection);
     }
+  }
+}
+
+export function hasLegacyLibrary(): boolean {
+  return Boolean(localStorage.getItem('library'));
+}
+
+export function ensureReservedCollections(collections: Record<string, unknown>) {
+  if (getCollectionsKeys().length !== 0) return;
+
+  for (const collection in collections) {
+    localStorage.setItem('library_' + collection, '[]');
+  }
+}
+
+export function importLibraryData(importedData: Record<string, unknown>) {
+  if (importedData.meta) {
+    for (const key in importedData) {
+      if (Object.prototype.hasOwnProperty.call(importedData, key)) {
+        localStorage.setItem('library_' + key, JSON.stringify(importedData[key]));
+      }
+    }
+    return 'v2';
+  }
+
+  localStorage.setItem('library', JSON.stringify(importedData));
+  return 'v1';
+}
+
+export function exportLibraryData(): Record<string, unknown> {
+  const exportedData: Record<string, unknown> = {};
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('library_')) {
+      exportedData[key.slice(8)] = JSON.parse(localStorage.getItem(key)!);
+    }
+  }
+
+  return exportedData;
+}
+
+export function clearLibraryData() {
+  const keysToRemove: string[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('library')) {
+      keysToRemove.push(key);
+    }
+  }
+
+  for (const key of keysToRemove) {
+    localStorage.removeItem(key);
   }
 }

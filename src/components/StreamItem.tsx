@@ -1,7 +1,7 @@
 import { Accessor, Show, createSignal } from 'solid-js';
 import './StreamItem.css';
 import { config, hostResolver, player, removeFromCollection, getCollectionItems, generateImageUrl } from '@utils';
-import { setStore, store, queueStore, setQueueStore, listStore, navStore, setNavStore, playerStore, setPlayerStore } from '@stores';
+import { setStore, queueStore, setQueueStore, listStore, navStore, setNavStore, playerStore, setPlayerStore } from '@stores';
 
 export default function(data: YTItem & {
   draggable?: boolean,
@@ -62,6 +62,23 @@ export default function(data: YTItem & {
   if (config.loadImage && !isAlbum)
     setImage(generateImageUrl(data.img || data.id, 'mq', data.context?.id === 'favorites' || isFromArtist || ((data.context?.src === 'queue') && isMusic)));
 
+  function openActionsMenu(trigger: HTMLElement) {
+    const rect = trigger.getBoundingClientRect();
+    setStore('actionsMenu', {
+      id: data.id,
+      title: data.title,
+      author: data.author,
+      duration: data.duration,
+      authorId: data.authorId,
+      context: data.context,
+      albumId: data.albumId,
+      menuPosition: {
+        x: rect.right,
+        y: rect.bottom + 8
+      }
+    });
+  }
+
   return (
     <a
       class='streamItem card card--interactive'
@@ -97,101 +114,80 @@ export default function(data: YTItem & {
           return;
         }
 
-        if (!e.target.classList.contains('ri-more-2-fill')) {
+        if (playerStore.stream.id) {
+          setQueueStore('history', h => [{ ...playerStore.stream }, ...h]);
+        }
 
-          if (playerStore.stream.id) {
-            setQueueStore('history', h => [{ ...playerStore.stream }, ...h]);
-          }
+        setPlayerStore('stream', {
+          id: data.id,
+          title: data.title,
+          author: data.author || '',
+          duration: data.duration,
+          authorId: data.authorId || '',
+        });
 
-          setPlayerStore('stream', {
-            id: data.id,
-            title: data.title,
-            author: data.author || '',
-            duration: data.duration,
-            authorId: data.authorId || '',
-          });
-
-          if (data.albumId)
-            setPlayerStore('stream', 'albumId', data.albumId);
-          else if (playerStore.stream.albumId)
-            setPlayerStore('stream', 'albumId', undefined);
+        if (data.albumId)
+          setPlayerStore('stream', 'albumId', data.albumId);
+        else if (playerStore.stream.albumId)
+          setPlayerStore('stream', 'albumId', undefined);
 
 
-          setPlayerStore('context', {
-            id: data.context?.id || '',
-            src: data.context?.src || ''
-          });
+        setPlayerStore('context', {
+          id: data.context?.id || '',
+          src: data.context?.src || ''
+        });
 
 
-          const isPortrait = matchMedia('(orientation:portrait)').matches;
+        const isPortrait = matchMedia('(orientation:portrait)').matches;
 
-          if (isPortrait || config.landscapeSections === '1') {
-            setNavStore('player', 'state', Boolean(config.watchMode));
+        if (isPortrait || config.landscapeSections === '1') {
+          setNavStore('player', 'state', Boolean(config.watchMode));
 
-            if (config.watchMode)
-              navStore.player.ref?.scrollIntoView();
-          }
+          if (config.watchMode)
+            navStore.player.ref?.scrollIntoView();
+        }
 
-          if (config.contextualFill && !queueStore.isSession && (data.context?.src === 'collection' || (data.context?.src === 'playlists')) && data.context?.id !== 'history') {
-            const collectionItems = data.context.src === 'collection' ? getCollectionItems(data.context.id) :
-              listStore.list;
-            const currentIndex = collectionItems.findIndex(item => item.id === data.id);
-            if (currentIndex !== -1) {
-              const zigzagQueue: TrackItem[] = [];
-              let left = currentIndex - 1;
-              let right = currentIndex + 1;
-              const len = collectionItems.length;
+        if (config.contextualFill && !queueStore.isSession && (data.context?.src === 'collection' || (data.context?.src === 'playlists')) && data.context?.id !== 'history') {
+          const collectionItems = data.context.src === 'collection' ? getCollectionItems(data.context.id) :
+            listStore.list;
+          const currentIndex = collectionItems.findIndex(item => item.id === data.id);
+          if (currentIndex !== -1) {
+            const zigzagQueue: TrackItem[] = [];
+            let left = currentIndex - 1;
+            let right = currentIndex + 1;
+            const len = collectionItems.length;
 
-              const historyIds = new Set(queueStore.history.map(i => i.id));
+            const historyIds = new Set(queueStore.history.map(i => i.id));
 
-              while (left >= 0 || right < len) {
-                if (right < len) {
-                  const item = collectionItems[right++];
-                  if (!historyIds.has(item.id)) zigzagQueue.push(item);
-                }
-                if (left >= 0) {
-                  const item = collectionItems[left--];
-                  if (!historyIds.has(item.id)) zigzagQueue.push(item);
-                }
+            while (left >= 0 || right < len) {
+              if (right < len) {
+                const item = collectionItems[right++];
+                if (!historyIds.has(item.id)) zigzagQueue.push(item);
               }
-              setQueueStore('list', zigzagQueue);
+              if (left >= 0) {
+                const item = collectionItems[left--];
+                if (!historyIds.has(item.id)) zigzagQueue.push(item);
+              }
             }
+            setQueueStore('list', zigzagQueue);
           }
-
-          player(data.id);
-
-          setQueueStore('list', (list) => {
-            const index = list.findIndex(item =>
-              item.id === data.id &&
-              item.context?.id === data.context?.id &&
-              item.context?.src === data.context?.src
-            );
-            if (index !== -1) {
-              const newList = [...list];
-              newList.splice(index, 1);
-              return newList;
-            }
-            return list;
-          });
         }
-        else {
-          setStore('actionsMenu', {
-            id: data.id,
-            title: data.title,
-            author: data.author,
-            duration: data.duration,
-            authorId: data.authorId,
-            context: data.context
-          });
 
+        player(data.id);
 
-          const { albumId } = data;
-          if (store.actionsMenu?.albumId)
-            setStore('actionsMenu', 'albumId', undefined);
-          if (albumId)
-            setStore('actionsMenu', 'albumId', albumId);
-
-        }
+        setQueueStore('list', (list) => {
+          const index = list.findIndex(item =>
+            item.id === data.id &&
+            item.context?.id === data.context?.id &&
+            item.context?.src === data.context?.src
+          );
+          if (index !== -1) {
+            const newList = [...list];
+            newList.splice(index, 1);
+            return newList;
+          }
+          return list;
+        });
       }}
     >
       <span>
@@ -219,7 +215,18 @@ export default function(data: YTItem & {
         <i aria-label="Drag" class="ri-draggable"></i>
       </Show>
       <Show when={!data.draggable && !data.inQueue}>
-        <i aria-label="More" class="ri-more-2-fill"></i>
+        <button
+          aria-label="More"
+          class="streamItem__more"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openActionsMenu(e.currentTarget);
+          }}
+        >
+          <i class="ri-more-2-fill" aria-hidden="true"></i>
+        </button>
       </Show>
     </a>
   )

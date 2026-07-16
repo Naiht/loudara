@@ -38,7 +38,7 @@ export default async function(data: TrackItem) {
     ]
   }
 
-  document.title = data.title + ' - ytify';
+  document.title = data.title + ' - Loudara';
 
 
   if ('mediaSession' in navigator) {

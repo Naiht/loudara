@@ -24,7 +24,7 @@ export default function(props: { onClose: () => void }) {
       `https://lrclib.net/api/get?track_name=${title}&artist_name=${author.slice(0, -8)}&duration=${playerStore.fullDuration}`,
       {
         headers: {
-          'Lrclib-Client': `ytify ${Build} (https://github.com/n-ce/ytify)`
+          'Lrclib-Client': `Loudara ${Build}`
         }
       })
       .then(res => res.json())

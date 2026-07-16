@@ -1,6 +1,7 @@
 import { playerStore, setPlayerStore, setStore, store } from "@stores";
 import { config, convertSStoHHMMSS, streamCache } from "@utils";
 import { isQueuePrefetchActive } from "../modules/queuePrefetch";
+import type { StreamData } from "@core/streaming";
 
 let playerAbortController: AbortController;
 export async function player(id?: string) {
@@ -29,10 +30,10 @@ export async function player(id?: string) {
   const getStreamData = await import('@modules/getStreamData').then(mod => mod.default);
   const data = await getStreamData(id, playerAbortController.signal);
 
-  if (data && 'adaptiveFormats' in data)
+  if (data && 'streams' in data)
     setPlayerStore({
       data,
-      fullDuration: data.lengthSeconds
+      fullDuration: data.duration || 0
     });
   else {
     const errorData = data as Record<'error' | 'message', string>;
@@ -44,28 +45,24 @@ export async function player(id?: string) {
     return;
   }
 
-  const invidiousData = data as Invidious;
+  const streamData = data as StreamData;
 
   await import('../modules/setMetadata')
     .then(mod => mod.default({
       id,
-      title: invidiousData.title,
-      author: invidiousData.author,
-      duration: convertSStoHHMMSS(invidiousData.lengthSeconds),
-      authorId: invidiousData.authorId
+      title: streamData.title || playerStore.stream.title,
+      author: streamData.author || playerStore.stream.author,
+      duration: convertSStoHHMMSS(streamData.duration || 0),
+      authorId: streamData.authorId || playerStore.stream.authorId
     }));
 
   import('../modules/setAudioStreams')
-    .then(mod => mod.default(
-      invidiousData.adaptiveFormats
-        .filter(f => f.type.startsWith('audio'))
-        .sort((a, b) => (parseInt(a.bitrate) - parseInt(b.bitrate)))
-    ));
+    .then(mod => mod.default(streamData.streams));
 
 
   if (config.similarContent && !enforceVideo && !isQueuePrefetchActive())
     import('../modules/enqueueRelatedStreams')
-      .then(mod => mod.default(invidiousData.recommendedVideos));
+      .then(mod => mod.default(streamData.recommended || []));
 
 
 
@@ -75,10 +72,9 @@ export async function player(id?: string) {
     import('../modules/setDiscoveries')
       .then(mod => {
         setTimeout(() => {
-          mod.default(id, invidiousData.recommendedVideos);
+          mod.default(id, streamData.recommended || []);
         }, 1e5);
       });
 
 }
-
 

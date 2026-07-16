@@ -1,4 +1,5 @@
 import { t } from '@stores';
+import { getConfigSnapshot, importConfigSnapshot, removeConfigSnapshot } from '@utils';
 
 export default function Dropdown() {
 
@@ -13,8 +14,8 @@ export default function Dropdown() {
   function exportSettings() {
     const link = document.createElement('a');
     const date = new Date().toISOString().split('T')[0];
-    link.download = `ytify_settings_${date}.json`;
-    link.href = `data:text/json;charset=utf-8,${encodeURIComponent(localStorage.getItem('config') || '{}')}`;
+    link.download = `loudara_settings_${date}.json`;
+    link.href = `data:text/json;charset=utf-8,${encodeURIComponent(getConfigSnapshot())}`;
     link.click();
   }
 
@@ -25,7 +26,7 @@ export default function Dropdown() {
     )[0].text();
 
     if (confirm(t('settings_import_prompt')))
-      localStorage.setItem('config', newSettings);
+      importConfigSnapshot(newSettings);
   }
 
   return (
@@ -39,7 +40,7 @@ export default function Dropdown() {
           <i class="ri-delete-bin-2-line"></i>&nbsp;{t('settings_clear_cache')}
         </li>
         <li onclick={() => {
-          localStorage.removeItem('config');
+          removeConfigSnapshot();
           location.reload();
         }}>
           <i class="ri-refresh-line"></i>&nbsp;{t('settings_restore')}
@@ -62,4 +63,3 @@ export default function Dropdown() {
     </details>
   );
 }
-

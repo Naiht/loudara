@@ -1,5 +1,6 @@
 import { playerStore, setPlayerStore, t } from "@stores";
-import { handleXtags, preferredStream, proxyHandler } from "@utils";
+import { proxyHandler } from "@utils";
+import { selectPlayableAudioStreams, type AudioStream } from "@core/streaming";
 
 export default async function(
   audioStreams: AudioStream[],
@@ -18,10 +19,20 @@ export default async function(
   }
 
 
-  const stream = await preferredStream(handleXtags(audioStreams));
-  //qualityView.textContent = stream.quality + ' ' + stream.codec;
   const target = prefetchNode || playerStore.audio;
+  const candidates = selectPlayableAudioStreams(audioStreams, target);
+
+  if (!candidates.length) {
+    setPlayerStore('status', 'No browser-compatible audio streams found');
+    setPlayerStore('playbackState', 'none');
+    return;
+  }
+
+  const stream = candidates[0];
   delete target.dataset.retried;
+  target.dataset.streamIndex = '0';
+  target.dataset.streamAttempts = JSON.stringify([]);
+  target.dataset.streamCandidates = JSON.stringify(candidates);
   target.src = proxyHandler(stream.url, Boolean(prefetchNode));
 
 }

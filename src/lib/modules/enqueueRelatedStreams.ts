@@ -7,16 +7,9 @@
 
 import { playerStore, addToQueue } from "@stores";
 import { convertSStoHHMMSS } from "@utils";
+import type { RecommendedStream } from "@core/streaming";
 
-type RecommendedVideo = {
-  title: string;
-  author: string;
-  lengthSeconds: number;
-  videoId: string;
-  authorId: string;
-};
-
-export default function(data: RecommendedVideo[]) {
+export default function(data: RecommendedStream[]) {
 
   const { isMusic, stream } = playerStore;
   const currentTitle = stream.title;
@@ -25,7 +18,7 @@ export default function(data: RecommendedVideo[]) {
     .filter(item => {
       const id = item.videoId;
       return (
-        item.lengthSeconds > 45 &&
+        item.duration > 45 &&
         !(sessionStorage.getItem('trashHistory') || '').includes(id) &&
         (!isMusic || item.author.endsWith(' - Topic'))
       );
@@ -35,7 +28,7 @@ export default function(data: RecommendedVideo[]) {
       title: item.title,
       author: item.author,
       authorId: item.authorId,
-      duration: convertSStoHHMMSS(item.lengthSeconds),
+      duration: convertSStoHHMMSS(item.duration),
       context: {
         src: 'queue',
         id: `Related to ${currentTitle}`

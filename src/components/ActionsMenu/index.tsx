@@ -1,24 +1,36 @@
-import { getDownloadLink, addToCollection, getCollection, removeFromCollection } from '@utils';
+import { getDownloadLink, addToCollection, getCollection, removeFromCollection, generateImageUrl, config } from '@utils';
 import './ActionsMenu.css';
-import { onMount, Show, createEffect, createSignal } from 'solid-js';
+import { onCleanup, onMount, Show, createEffect, createSignal } from 'solid-js';
 import { render } from 'solid-js/web';
 import { LikeButton } from '@components/MediaPartials';
 import CollectionSelector from './CollectionSelector';
-import StreamItem from '@components/StreamItem';
 import { setStore, store, t, playerStore, getList, setListStore, addToQueue, queueStore, setQueueStore, setNavStore } from '@stores';
 
 
 export default function() {
 
   const isMusic = store.actionsMenu?.author?.endsWith('- Topic');
-  let dialog!: HTMLDialogElement;
+  let menu!: HTMLDivElement;
 
   function closeDialog() {
-    dialog.close();
     setStore('actionsMenu', undefined);
   }
+
   onMount(() => {
-    dialog.showModal();
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!menu.contains(event.target as Node)) closeDialog();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeDialog();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    onCleanup(() => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    });
   });
 
   const [isListenLater, setIsListenLater] = createSignal(false);
@@ -34,20 +46,28 @@ export default function() {
 
 
   return (
-    <dialog
+    <div
       id="actionsMenu"
-      ref={dialog}
-      onclick={() => !isDownloading() && !isViewingAuthor() && !isViewingAlbum() && closeDialog()}
+      ref={menu}
+      role="menu"
+      style={{
+        '--actions-menu-x': `${store.actionsMenu?.menuPosition?.x || window.innerWidth - 16}px`,
+        '--actions-menu-y': `${store.actionsMenu?.menuPosition?.y || 72}px`
+      }}
+      onclick={(e) => e.stopPropagation()}
     >
-      <StreamItem
-        id={store.actionsMenu?.id || ''}
-        title={store.actionsMenu?.title || ''}
-        authorId={store.actionsMenu?.authorId || ''}
-        author={store.actionsMenu?.author || ''}
-        duration={store.actionsMenu?.duration || ''}
-        type="video"
-        context={store.actionsMenu?.context}
-      />
+      <div class="actions-menu__track">
+        <Show when={config.loadImage && store.actionsMenu?.id}>
+          <img src={generateImageUrl(store.actionsMenu?.id || '', 'mq', isMusic)} alt="" />
+        </Show>
+        <span>
+          <strong>{store.actionsMenu?.title || ''}</strong>
+          <small>{store.actionsMenu?.author?.replace(' - Topic', '') || ''}</small>
+        </span>
+        <Show when={store.actionsMenu?.duration}>
+          <time>{store.actionsMenu?.duration}</time>
+        </Show>
+      </div>
 
       <ul
         onclick={(e: Event) => e.stopPropagation()}
@@ -256,7 +276,7 @@ export default function() {
         </li>
 
       </ul >
-    </dialog >
+    </div >
   );
 
 

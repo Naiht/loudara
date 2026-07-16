@@ -1,6 +1,6 @@
 {
-  "name": "ytify",
-  "version": "8.4-PR4",
+  "name": "loudara",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
   "dependencies": {
     "solid-js": "1.9.13",
     "solid-sortablejs": "^2.1.8",
-    "sortablejs": "^1.15.7"
+    "sortablejs": "^1.15.7",
+    "workbox-window": "7.4.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260616.1",

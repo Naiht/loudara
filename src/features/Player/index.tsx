@@ -75,7 +75,16 @@ export default function() {
           aria-label={t('player_more')}
           class="ri-more-2-fill"
           id="moreBtn"
-          onclick={() => setStore('actionsMenu', playerStore.stream)}
+          onclick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setStore('actionsMenu', {
+              ...playerStore.stream,
+              menuPosition: {
+                x: rect.right,
+                y: rect.bottom + 8
+              }
+            });
+          }}
         ></i>
       </header>
       <article>

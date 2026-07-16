@@ -28,6 +28,10 @@
     "paths": {
       "@stores": ["./src/lib/stores"],
       "@utils": ["./src/lib/utils"],
+      "@core": ["./src/core"],
+      "@core/*": ["./src/core/*"],
+      "@platform": ["./src/platform"],
+      "@platform/*": ["./src/platform/*"],
       "@modules/*": ["./src/lib/modules/*"],
       "@components/*": ["./src/components/*"],
       "@features/*": ["./src/features/*"]

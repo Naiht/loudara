@@ -100,10 +100,10 @@
 		}
 	}
 
-	i {
+	i,
+	.streamItem__more {
 		height: var(--size-9);
 		aspect-ratio: 1;
-		font-size: var(--font-size-3);
 		z-index: 2;
 		position: absolute;
 		right: calc(var(--size-2) - var(--size-6));
@@ -118,7 +118,25 @@
 
 		&:hover {
 			opacity: 1;
-			background-image: radial-gradient(var(--onBg), var(--onBg2) 80%);
+			background: var(--onBg2);
+		}
+	}
+
+	i {
+		font-size: var(--font-size-3);
+	}
+
+	.streamItem__more {
+		border: 0;
+		color: inherit;
+		background: transparent;
+
+		i {
+			position: static;
+			width: auto;
+			height: auto;
+			opacity: 1;
+			background: transparent;
 		}
 	}
 }

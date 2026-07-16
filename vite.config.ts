@@ -20,6 +20,10 @@ export default defineConfig(({ command }) => ({
       '@stores': path.resolve(__dirname, './src/lib/stores'),
       '@modules': path.resolve(__dirname, './src/lib/modules'),
       '@utils': path.resolve(__dirname, './src/lib/utils'),
+      '@core': path.resolve(__dirname, './src/core'),
+      '@core/*': path.resolve(__dirname, './src/core/*'),
+      '@platform': path.resolve(__dirname, './src/platform'),
+      '@platform/*': path.resolve(__dirname, './src/platform/*'),
       '@components': path.resolve(__dirname, './src/components'),
       '@features': path.resolve(__dirname, './src/features'),
     },
@@ -30,9 +34,9 @@ export default defineConfig(({ command }) => ({
     apiMiddleware(command === 'serve'),
     VitePWA({
       manifest: {
-        "short_name": "Ytify",
-        "name": "Listen with ytify",
-        "description": "32kb/s to 128kb/s youtube audio streaming website. Copy a youtube video link and listen to it as an audio totally free.",
+        "short_name": "Loudara",
+        "name": "Loudara",
+        "description": "Modern music player for web and desktop.",
         "icons": [
           {
             "src": "logo192.png",
@@ -103,7 +107,7 @@ export default defineConfig(({ command }) => ({
         }
       },
       disable: command !== 'build',
-      includeAssets: ['*.woff2', 'ytify_banner.webp']
+      includeAssets: ['*.woff2', 'loudara_banner.webp']
     })
   ],
   css: {
@@ -141,10 +145,18 @@ const injectEruda = (serve: boolean) => serve ? (<PluginOption>{
 const apiMiddleware = (serve: boolean): PluginOption => serve ? {
   name: 'api-middleware',
   configureServer(server) {
-    const endpoints = ['album', 'artist', 'channel', 'gallery', 'playlist', 'search', 'search-suggestions', 'similar', 'subfeed'];
+    const endpoints = ['album', 'artist', 'channel', 'gallery', 'playlist', 'search', 'search-suggestions', 'similar', 'subfeed', 'trending'];
     server.middlewares.use(async (req, res, next) => {
       const url = new URL(req.url || '', 'http://localhost');
       const path = url.pathname.replace(/^\/api\//, '').replace(/^\//, '');
+
+      const sharedStreamMatch = url.pathname.match(/^\/s\/([a-zA-Z0-9_-]{11})$/);
+      if (sharedStreamMatch) {
+        res.statusCode = 302;
+        res.setHeader('Location', `/?s=${sharedStreamMatch[1]}`);
+        res.end();
+        return;
+      }
       
       if (endpoints.includes(path) || req.url?.startsWith('/api/')) {
         const { createLocalAdapter } = await server.ssrLoadModule('./src/backend/localAdapter.ts');
@@ -156,5 +168,3 @@ const apiMiddleware = (serve: boolean): PluginOption => serve ? {
     });
   }
 } : [];
-
-

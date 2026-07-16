@@ -1,5 +1,6 @@
 import { setStore, playerStore, setPlayerStore } from '@stores';
-import { streamCache } from '@utils';
+import { proxyHandler, streamCache } from '@utils';
+import type { AudioStream } from '@core/streaming';
 
 export default function(
   audio: HTMLAudioElement | HTMLVideoElement,
@@ -15,6 +16,23 @@ export default function(
   const isAlreadyProxy = url.origin === proxy || audio.dataset.retried === 'true';
 
   const id = prefetch || playerStore.stream.id;
+
+  const candidates = parseCandidates(audio.dataset.streamCandidates);
+  const index = Number.parseInt(audio.dataset.streamIndex || '0', 10);
+  const next = candidates[index + 1];
+
+  if (next) {
+    const attempts = parseAttempts(audio.dataset.streamAttempts);
+    attempts.push({
+      url: audio.src,
+      message: 'media element error'
+    });
+    audio.dataset.streamAttempts = JSON.stringify(attempts);
+    audio.dataset.streamIndex = String(index + 1);
+    delete audio.dataset.retried;
+    audio.src = proxyHandler(next.url, Boolean(prefetch));
+    return;
+  }
 
   if (isFallback) {
     if (!playerStore.isWatching && !prefetch) {
@@ -50,5 +68,25 @@ export default function(
       status: 'Streaming Failed EB'
     });
     streamCache.remove(id);
+  }
+}
+
+function parseCandidates(raw?: string): AudioStream[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as AudioStream[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseAttempts(raw?: string): Array<{ url: string; message: string }> {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as Array<{ url: string; message: string }>;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }

@@ -1,13 +1,14 @@
 import { createSignal, For, createEffect, Show } from "solid-js";
 import { config, generateImageUrl, proxyHandler, setConfig } from "@utils";
 import { playerStore, playNext, setPlayerStore, t, queueStore } from "@stores";
+import type { StreamData } from "@core/streaming";
 
 
 export default function() {
 
   const [data, setData] = createSignal({
     video: [] as string[][],
-    captions: [] as Invidious['captions']
+    captions: [] as NonNullable<StreamData['captions']>
   });
   let video!: HTMLVideoElement;
   let selector!: HTMLSelectElement;
@@ -33,28 +34,29 @@ export default function() {
       .then(result => result.supported);
 
 
-    const data = playerStore.data as Invidious;
+    const data = playerStore.data as StreamData;
+    const videoStreams = data.videoStreams || [];
 
-    const hasAv1 = data.adaptiveFormats.filter(v => v.type?.includes('av01')).length === 4 ? data.adaptiveFormats.find(v => v.type?.includes('av01'))?.url : false;
-    const hasVp9 = data.adaptiveFormats.find(v => v.type?.includes('vp9'))?.url;
+    const hasAv1 = videoStreams.filter(v => v.mimeType?.includes('av01')).length === 4 ? videoStreams.find(v => v.mimeType?.includes('av01'))?.url : false;
+    const hasVp9 = videoStreams.find(v => v.mimeType?.includes('vp9'))?.url;
 
     video.currentTime = playerStore.audio.currentTime;
     setData({
-      video: data.adaptiveFormats
+      video: videoStreams
         .filter(f => {
-          if (!f.type.startsWith('video')) return false;
-          const av1 = hasAv1 && supportsAv1 && f.type?.includes('av01');
+          if (!f.mimeType.startsWith('video')) return false;
+          const av1 = hasAv1 && supportsAv1 && f.mimeType?.includes('av01');
           if (av1) return true;
-          const vp9 = !hasAv1 && f.type?.includes('vp9');
+          const vp9 = !hasAv1 && f.mimeType?.includes('vp9');
           if (vp9) return true;
-          const avc = !hasVp9 && f.type?.includes('avc1');
+          const avc = !hasVp9 && f.mimeType?.includes('avc1');
           if (avc) return true;
           return false;
         })
-        .map(f => ([f.resolution || f.quality, f.url])),
-      captions: data.captions.map(c => ({
+        .map(f => ([f.quality || 'video', f.url])),
+      captions: (data.captions || []).map(c => ({
         ...c,
-        url: playerStore.proxy + c.url
+        url: c.url.startsWith('http') ? c.url : playerStore.proxy + c.url
       }))
     });
 
@@ -141,7 +143,7 @@ export default function() {
               <track
                 kind="subtitles"
                 src={v.url}
-                srclang={v.language_code}
+                srclang={v.languageCode}
                 label={v.label}
               >
               </track>

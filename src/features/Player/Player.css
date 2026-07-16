@@ -223,7 +223,24 @@
   }
 
   #volumeChanger {
-    text-align: right;
+    width: 88px;
+    color: var(--text2);
+    --thumb-height: 0.75rem;
+    --track-height: 0.18rem;
+  }
+
+  .volumeControl {
+    display: flex;
+    min-width: 124px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--size-1);
+    color: var(--text2);
+
+    i {
+      padding: 0;
+      opacity: 0.75;
+    }
   }
 }
 

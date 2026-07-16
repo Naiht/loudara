@@ -29,15 +29,11 @@ export async function activateQueuePrefetch() {
     setStore('snackbar', t('queue_prefetch_activating').replace('$', `${count}/${total}`));
 
     const data = await getStreamData(track.id);
-    if (data && 'adaptiveFormats' in data) {
+    if (data && 'streams' in data) {
       const ghost = new Audio();
       ghost.preload = 'auto';
 
-      const formats = data.adaptiveFormats
-        .filter(f => f.type.startsWith('audio'))
-        .sort((a, b) => (parseInt(a.bitrate) - parseInt(b.bitrate)));
-
-      await setAudioStreams(formats, ghost);
+      await setAudioStreams(data.streams, ghost);
       queueStore.sessionMap.set(track.id, ghost);
     }
     count++;

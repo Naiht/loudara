@@ -251,12 +251,9 @@ createRoot(() => {
 
     const data = streamCache.get(nextItem) || await import('@modules/getStreamData').then(mod => mod.default(nextItem));
 
-    if (data && 'adaptiveFormats' in data) {
-      const formats = (data as Invidious).adaptiveFormats
-        .filter(f => f.type.startsWith('audio'))
-        .sort((a, b) => (parseInt(a.bitrate) - parseInt(b.bitrate)));
+    if (data && 'streams' in data) {
       import('../modules/setAudioStreams')
-        .then(mod => mod.default(formats, prefetchRef));
+        .then(mod => mod.default(data.streams, prefetchRef));
     }
 
   }

@@ -11,16 +11,52 @@ type SearchFilters = {
   features?: Feature[];
 };
 
-export default async function(params: { q: string, f?: string }) {
+type SearchResultPage = {
+  items: (YTItem | YTListItem)[];
+  hasMore: boolean;
+};
+
+function mapSearchItems(nodes: Iterable<any>, f?: string): (YTItem | YTListItem)[] {
+  return Array.from(nodes)
+    .map((node) => (f === 'song' ? streamMapper(node) : streamMapper(node) || listMapper(node)))
+    .filter((item): item is YTItem | YTListItem => item !== null);
+}
+
+export default async function(params: { q: string, f?: string, page?: number }): Promise<SearchResultPage> {
   const { q, f } = params;
+  const page = Number.isFinite(params.page) ? Math.max(1, params.page || 1) : 1;
   const yt = await getClient();
 
   if (f === 'song' || f === 'artist' || f === 'album') {
     const results = await yt.music.search(q, { type: f });
+
+    if (page > 1) {
+      if (!results.has_continuation) {
+        return { items: [], hasMore: false };
+      }
+
+      let continuation = await results.getContinuation();
+
+      for (let index = 2; index < page; index++) {
+        if (!continuation.has_continuation) {
+          return { items: [], hasMore: false };
+        }
+
+        continuation = await continuation.getContinuation();
+      }
+
+      return {
+        items: mapSearchItems(continuation.contents?.contents || [], f),
+        hasMore: continuation.has_continuation
+      };
+    }
+
     const shelf = results.songs || results.artists || results.albums;
-    return (shelf?.contents || [])
-      .map((node) => (f === 'song' ? streamMapper(node) : listMapper(node)))
-      .filter((item): item is NonNullable<ReturnType<typeof streamMapper>> => item !== null);
+
+    return {
+      items: mapSearchItems(shelf?.contents || [], f),
+      hasMore: results.has_continuation
+    };
   }
 
   const filters: SearchFilters = {};
@@ -33,7 +69,16 @@ export default async function(params: { q: string, f?: string }) {
   } else if (f === 'playlist' || f === 'channel')
     filters.type = f;
 
-  const results = await yt.search(q, filters);
+  let results = await yt.search(q, filters);
+
+  for (let index = 1; index < page; index++) {
+    if (!results.has_continuation) {
+      return { items: [], hasMore: false };
+    }
+
+    results = await results.getContinuation();
+  }
+
   const contents = (filters.type === 'video' ? results.videos : results.results) || [];
 
   if (f === 'upload_date') {
@@ -44,7 +89,8 @@ export default async function(params: { q: string, f?: string }) {
     });
   }
 
-  return contents
-    .map((node) => streamMapper(node) || listMapper(node))
-    .filter((item): item is NonNullable<ReturnType<typeof streamMapper>> => item !== null);
+  return {
+    items: mapSearchItems(contents, f),
+    hasMore: results.has_continuation
+  };
 }

@@ -1,5 +1,5 @@
 import { createSignal, For, Show, createMemo } from "solid-js";
-import { fetchCollection, getCollectionsKeys, getTracksMap, drawer } from "@utils";
+import { ensureReservedCollections, fetchCollection, getCollectionsKeys, getTracksMap, hasLegacyLibrary, drawer } from "@utils";
 import { t, setListStore, setNavStore } from "@stores";
 import StreamItem from "@components/StreamItem";
 
@@ -28,7 +28,7 @@ export default function() {
     setSearchText(searchBar.value);
   };
 
-  if (localStorage.getItem('library')) {
+  if (hasLegacyLibrary()) {
     import('@modules/libraryMigrator')
       .then(m => m.default());
     return t('library_migration_in_place');
@@ -42,9 +42,7 @@ export default function() {
   };
 
   if (getCollectionsKeys().length === 0) {
-    for (const collection in reservedCollections) {
-      localStorage.setItem('library_' + collection, '[]');
-    }
+    ensureReservedCollections(reservedCollections);
   }
 
   const searchResults = createMemo(() => {

@@ -148,32 +148,34 @@ export default function(_: {
           ></i>
         </Show>
 
-        <select
-          id="volumeChanger"
-          value={playerStore.volume}
-          onchange={e => {
-            const ref = e.target;
-            const vol = parseFloat(ref.value);
-            playerStore.audio.volume = vol;
-            setConfig('volume', (vol * 100).toString());
-            setPlayerStore('volume', vol);
-            ref.blur();
-          }}
-        >
-          <option value="0">0%</option>
-          <option value="0.002">0.2%</option>
-          <option value="0.005">0.5%</option>
-          <option value="0.01">1%</option>
-          <option value="0.02">2%</option>
-          <option value="0.03">3%</option>
-          <option value="0.05">5%</option>
-          <option value="0.1">10%</option>
-          <option value="0.15">15%</option>
-          <option value="0.25">25%</option>
-          <option value="0.5">50%</option>
-          <option value="0.75">75%</option>
-          <option value="1">100%</option>
-        </select>
+        <label class="volumeControl" aria-label="Volumen">
+          <i class="ri-music-2-line" aria-hidden="true"></i>
+          <input
+            id="volumeChanger"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={playerStore.volume}
+            onInput={e => {
+              const ref = e.currentTarget;
+              const vol = parseFloat(ref.value);
+
+              playerStore.audio.volume = vol;
+              setConfig('volume', (vol * 100).toString());
+              setPlayerStore('volume', vol);
+            }}
+            onchange={e => {
+              const ref = e.currentTarget;
+              const vol = parseFloat(ref.value);
+
+              playerStore.audio.volume = vol;
+              setConfig('volume', (vol * 100).toString());
+              setPlayerStore('volume', vol);
+              ref.blur();
+            }}
+          />
+        </label>
 
       </div>
 

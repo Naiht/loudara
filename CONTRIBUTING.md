@@ -1,21 +1,13 @@
-# Documentation
-- https://github.com/n-ce/ytify/wiki
+# Contributing
 
-# Changelog
-- https://github.com/n-ce/ytify/wiki/changelog
+Loudara is being refactored in small, verifiable phases.
 
-# Development
-- Please take a look at [issues](https://github.com/n-ce/ytify/issues)
+Before sending changes:
 
-# Notable Versions
-- [One](https://deploy-preview-8--ytify.netlify.app/)
-- [Two](https://deploy-preview-20--ytify.netlify.app/)
-- [Three](https://deploy-preview-32--ytify.netlify.app/)
-- [Four](https://deploy-preview-51--ytify.netlify.app/)
-- [Five](https://deploy-preview-60--ytify.netlify.app/)
-- [Five.final](https://deploy-preview-118--ytify.netlify.app/)
-- [Six.beta](https://deploy-preview-124--ytify.netlify.app/)
-- [Six.lite](https://lite--ytify.netlify.app)
-- [Seven](https://deploy-preview-187--ytify.netlify.app)
-- [Seven.Eight](https://67c6f71989c173000858cc5d--ytify.netlify.app)
-- [SevenXEight](https://68bd4765e217420008188710--ytify.netlify.app)
+- Keep the frontend on SolidJS, TypeScript, CSS and Vite.
+- Keep platform-specific code out of visual components.
+- Do not add private keys or secrets to `VITE_*` variables.
+- Run `pnpm exec tsc --noEmit`.
+- Run `pnpm build`.
+
+Prefer focused changes that preserve existing player, search, queue and library behavior.

@@ -211,6 +211,18 @@ export default function() {
         </div>
       </Show>
 
+      <Show when={listStore.type === 'channels' && listStore.img}>
+        <section class="list-profile">
+          <Show when={config.loadImage}>
+            <img src={generateImageUrl(listStore.img, '')} alt="" />
+          </Show>
+          <div>
+            <p>{listStore.name.replace(/^Artist - /, '')}</p>
+            <span>{listStore.list.length ? t('list_streams_count', listStore.list.length.toString()) : listStore.author}</span>
+          </div>
+        </section>
+      </Show>
+
       <Show when={config.loadImage && listStore.id.startsWith('MPREb')}>
         <img src={generateImageUrl(listStore.img, '720')} alt={listStore.name} class="list-thumbnail" />
       </Show>

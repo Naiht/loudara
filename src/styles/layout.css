@@ -100,8 +100,7 @@ section>header {
     }
 
     ul {
-      background: rgb(from var(--onBg) r g b / 0.8);
-      backdrop-filter: blur(var(--size-px-2));
+      background: var(--color-surface-01);
       color: var(--text);
       padding: var(--size-1);
       list-style: none;
@@ -143,7 +142,7 @@ section>header {
 
 /* --- Main content area & Sections --- */
 main {
-  color: color-mix(in srgb, oklch(from var(--source) 50% calc(c * var(--chroma)) h), var(--text) 80%);
+  color: var(--color-text-secondary);
   display: flex;
   height: 100%;
   overflow-x: auto;

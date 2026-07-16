@@ -172,31 +172,80 @@ footer {
     }
   }
 
-  progress {
+  .miniplayer__progress-fill {
     position: absolute;
     z-index: -1;
     top: 0;
     left: 0;
-    width: 100%;
+    width: var(--mini-player-progress, 0%);
     height: 100%;
-    background-color: transparent;
-    appearance: none;
+    background: linear-gradient(transparent, var(--onBg2));
+    border-bottom: var(--border-size-1) solid var(--text2);
+    pointer-events: none;
+    transition: width 1s linear;
+  }
+
+  .miniplayer__seek {
+    position: absolute;
+    z-index: 2;
+    right: var(--space-3, var(--size-2));
+    bottom: 0;
+    left: var(--space-3, var(--size-2));
+    width: calc(100% - (var(--space-3, var(--size-2)) * 2));
+    height: 18px;
+    padding: 0;
+    color: var(--text2);
+    background: transparent;
     border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 160ms ease;
+    appearance: none;
+    --thumb-height: 18px;
+    --track-height: 3px;
+    --track-color: color-mix(in srgb, var(--text2) 22%, transparent);
 
-    &::-webkit-progress-bar {
+    &:hover,
+    &:focus-visible,
+    &:active {
+      opacity: 1;
+    }
+
+    &::-webkit-slider-runnable-track {
+      height: var(--track-height);
       background: transparent;
+      border-radius: 999px;
     }
 
-    &::-moz-progress-bar {
-      background: linear-gradient(transparent, var(--onBg2));
-      border-bottom: var(--border-size-1) solid var(--text2);
-      transition: all 1s linear;
+    &::-webkit-slider-thumb {
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--text);
+      box-shadow: none;
+      clip-path: none;
     }
 
-    &::-webkit-progress-value {
-      background: linear-gradient(transparent, var(--onBg2));
-      border-bottom: var(--border-size-1) solid var(--text2);
-      transition: all 1s linear;
+    &::-moz-range-track {
+      height: var(--track-height);
+      background: var(--track-color);
+      border-radius: 999px;
+    }
+
+    &::-moz-range-progress {
+      height: var(--track-height);
+      background: var(--text2);
+      border-radius: 999px;
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--text);
     }
   }
 }

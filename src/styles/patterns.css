@@ -27,10 +27,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background:
-    linear-gradient(to right, var(--trueBg), transparent, var(--trueBg)),
-    linear-gradient(var(--trueBg), transparent);
-  backdrop-filter: blur(var(--size-px-3));
+  background: var(--color-bg-base);
 }
 
 /* Layout primitives */
@@ -191,7 +188,7 @@
     width: var(--size-11);
     flex-shrink: 0;
     margin: 0;
-    background-color: transparent;
+    background-color: var(--color-surface-01);
     border: none;
   }
 }

@@ -55,6 +55,10 @@
   content: "\eeb9";
 }
 
+.ri-list-settings-line:before {
+  content: "\eebd";
+}
+
 .ri-link:before {
   content: "\eeb2";
 }

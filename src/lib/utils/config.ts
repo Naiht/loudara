@@ -74,3 +74,15 @@ export function setDrawer<K extends
   const str = JSON.stringify(drawer);
   localStorage.setItem('drawer', str);
 }
+
+export function getConfigSnapshot(): string {
+  return localStorage.getItem('config') || '{}';
+}
+
+export function importConfigSnapshot(settings: string) {
+  localStorage.setItem('config', settings);
+}
+
+export function removeConfigSnapshot() {
+  localStorage.removeItem('config');
+}

@@ -12,6 +12,8 @@ export default function() {
         setSearchStore({
           page: 1,
           results: [],
+          hasMore: true,
+          isLoadingMore: false,
         });
         setConfig('searchFilter', value);
         updateParam('f', value);

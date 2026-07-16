@@ -16,10 +16,10 @@ export default function(ids: string[]): Promise<void> {
 
         collectionItems.push({
           id: id,
-          title: streamData.title,
-          author: streamData.author,
-          authorId: streamData.authorId,
-          duration: convertSStoHHMMSS(streamData.lengthSeconds),
+          title: streamData.title || id,
+          author: streamData.author || '',
+          authorId: streamData.authorId || '',
+          duration: convertSStoHHMMSS(streamData.duration || 0),
         });
       })
       .catch(error => {

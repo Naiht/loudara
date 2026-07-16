@@ -7,15 +7,14 @@ import getSearch from './getSearch.js';
 import getSearchSuggestions from './getSearchSuggestions.js';
 import getSimilar from './getSimilar.js';
 import getSubFeed from './getSubFeed.js';
+import getTrending from './getTrending.js';
+import { getStream } from './getStream.js';
+import { getYoutubeMedia } from './getYoutubeStream.js';
 import type { Request, ExecutionContext } from '@cloudflare/workers-types';
 
 const ALLOWED_ORIGINS = [
-  'https://ytify.pp.ua',
-  'https://ytify.netlify.app',
-  'https://ytify.zeabur.app',
-  'https://ytify-zeta.vercel.app',
-  'https://ytify-legacy.vercel.app',
-  'https://ytify-2nx7.onrender.com',
+  'https://loudara.app',
+  'https://www.loudara.app',
   'http://localhost:3000',
   'http://localhost:5173'
 ];
@@ -32,7 +31,7 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
-    const allowedOrigin = (origin && ALLOWED_ORIGINS.includes(origin)) ? origin : 'https://ytify.pp.ua';
+    const allowedOrigin = (origin && ALLOWED_ORIGINS.includes(origin)) ? origin : 'https://loudara.app';
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigin,
@@ -90,8 +89,9 @@ export default {
         case 'search': {
           const q = searchParams.get('q');
           const f = searchParams.get('f');
+          const page = Number(searchParams.get('page') || '1');
           if (!q) throw new Error('Missing q parameter');
-          data = await getSearch({ q, f: f || undefined });
+          data = await getSearch({ q, f: f || undefined, page });
           break;
         }
         case 'search-suggestions': {
@@ -115,11 +115,55 @@ export default {
           data = await getSubFeed(id.split(','));
           break;
         }
-        default:
+        case 'trending': {
+          data = await getTrending();
+          break;
+        }
+        default: {
+          if (path.startsWith('media/')) {
+            const [, id, itagValue] = path.match(/^media\/([a-zA-Z0-9_-]{11})\/(\d+)$/) || [];
+            const itag = Number.parseInt(itagValue || '', 10);
+
+            if (!id || !Number.isFinite(itag)) {
+              return new Response(JSON.stringify({ error: 'Invalid media request' }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+
+            const response = await getYoutubeMedia(id, itag, request);
+            Object.entries(corsHeaders).forEach(([key, value]) => response.headers.set(key, value));
+            return response;
+          }
+
+          if (path.startsWith('stream/')) {
+            const id = path.slice('stream/'.length);
+            const result = await getStream(id);
+            if (!result.data) {
+              return new Response(JSON.stringify({
+                error: 'stream_unavailable',
+                attempts: result.attempts
+              }), {
+                status: result.attempts[0]?.provider === 'validation' ? 400 : 502,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+
+            return new Response(JSON.stringify(result.data), {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+                'Cache-Control': 's-maxage=1800, stale-while-revalidate=300'
+              }
+            });
+          }
+
           return new Response(JSON.stringify({ error: 'Not Found' }), {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
+        }
       }
 
       return new Response(JSON.stringify(data), {

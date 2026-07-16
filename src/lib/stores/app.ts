@@ -8,13 +8,19 @@ const storeInit: {
   useSaavn: boolean,
   api: string,
   updater?: () => void,
-  actionsMenu?: TrackItem & { albumId?: string },
+  actionsMenu?: TrackItem & {
+    albumId?: string,
+    menuPosition?: {
+      x: number,
+      y: number
+    }
+  },
   snackbar?: string,
   syncState?: SyncState,
   locale: string,
   translations: Record<TranslationKeys, string> | {}
 } = {
-  api: import.meta.env.DEV ? '' : 'https://api.ytify.workers.dev',
+  api: import.meta.env.VITE_LOUDARA_API_URL || '',
   useSaavn: true,
   locale: initLocale,
   translations: {},

@@ -1,76 +1,98 @@
 #actionsMenu {
+  --actions-menu-width: min(360px, calc(100dvw - 24px));
+  position: fixed;
+  top: min(var(--actions-menu-y), calc(100dvh - 24px));
+  left: min(max(12px, var(--actions-menu-x)), calc(100dvw - 12px));
+  z-index: 120;
   padding: 0;
-  width: 100%;
-  margin: auto;
-  border: var(--border);
-  border-radius: var(--roundness);
-  background: rgb(from var(--onBg) r g b / 0.8);
-  backdrop-filter: blur(var(--size-px-2));
-  overflow: auto;
+  width: var(--actions-menu-width);
+  max-height: min(560px, calc(100dvh - 24px - var(--actions-menu-y)));
+  transform: translateX(-100%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  background: var(--color-surface-01);
+  box-shadow: var(--shadow-surface);
+  overflow: hidden;
 
-  >.streamItem {
-    margin: 0;
-    pointer-events: none;
-    border: none;
-    max-width: 100dvmin;
-
-    .ri-more-2-fill {
-      display: none;
-    }
+  .actions-menu__track {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 76px;
+    padding: var(--space-2);
+    background: var(--color-surface-02);
   }
 
-  &[open],
-  &:open {
-    animation: var(--animation-slide-in-up);
+  .actions-menu__track img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-03);
   }
 
-  @media(orientation:portrait) {
-    margin-bottom: var(--size-4);
+  .actions-menu__track span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
   }
 
-  @media(orientation:landscape) {
-    margin-right: var(--size-fluid-2);
-    width: max-content;
-
-    &[open],
-    &:open {
-      animation: var(--animation-slide-in-left);
-    }
-
+  .actions-menu__track strong,
+  .actions-menu__track small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  &::backdrop {
-    background-color: var(--blurMix);
-    backdrop-filter: blur(var(--size-px-1));
+  .actions-menu__track strong {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
   }
+
+  .actions-menu__track small,
+  .actions-menu__track time {
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: 800;
+  }
+
+  animation: actions-menu-in 120ms ease-out;
 
   ul {
     list-style: none;
     padding: 0;
     display: grid;
+    max-height: calc(min(560px, calc(100dvh - 24px - var(--actions-menu-y))) - 76px);
+    overflow: auto;
+    scrollbar-color: var(--color-border-strong) var(--color-surface-01);
   }
 
   li {
     cursor: pointer;
-    color: var(--text);
+    color: var(--color-text-secondary);
     user-select: none;
-    font-size: var(--font-size-2);
-    font-weight: var(--font-weight-6);
+    font-size: var(--font-size-sm);
+    font-weight: 800;
     display: flex;
     align-items: center;
-    gap: var(--gap);
-    padding: var(--size-1) var(--size-5);
-    border-top: var(--border);
+    gap: var(--space-3);
+    min-height: 40px;
+    padding: 0 var(--space-4);
+    border-top: 1px solid var(--color-border-subtle);
     transition: background-color 0.2s;
 
     &:hover {
-      background: var(--onBg2);
-      color: var(--text2);
+      background: var(--color-surface-02);
+      color: var(--color-text-primary);
     }
 
     & i {
-      font-size: var(--font-size-3);
-      font-weight: var(--font-weight-3);
+      width: 22px;
+      flex: 0 0 22px;
+      font-size: 1.15rem;
+      font-weight: 400;
     }
   }
 
@@ -96,6 +118,46 @@
         text-align: right;
         color: inherit !important;
       }
+    }
+  }
+}
+
+@keyframes actions-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%) translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-100%) translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  #actionsMenu {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(620px, calc(100dvh - 24px));
+    transform: none;
+  }
+
+  #actionsMenu ul {
+    max-height: calc(min(620px, calc(100dvh - 24px)) - 76px);
+  }
+
+  @keyframes actions-menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 }

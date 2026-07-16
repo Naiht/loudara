@@ -1,8 +1,8 @@
 import { For, onMount, Show } from "solid-js";
-import { getSearchResults, getSearchSuggestions, playerStore, searchStore, setSearchStore, t } from "@stores";
+import { getSearchResults, getSearchSuggestions, playerStore, searchStore, setNavStore, setSearchStore, t } from "@stores";
 import { config, drawer, idFromURL, player } from "@utils";
 
-export default function() {
+export default function(props: { class?: string } = {}) {
 
   let superInput!: HTMLInputElement;
 
@@ -12,8 +12,13 @@ export default function() {
     superInput.blur();
     setSearchStore('suggestions', 'data', []);
     setSearchStore('page', 1);
+    setSearchStore('hasMore', true);
+    setSearchStore('isLoadingMore', false);
     setSearchStore('results', []);
     setSearchStore('query', text);
+    setNavStore('queue', 'state', false);
+    setNavStore('player', 'state', false);
+    setNavStore('active', 'search');
     getSearchResults();
   }
 
@@ -24,7 +29,7 @@ export default function() {
         placeholder={t("search_placeholder")}
         type="search"
         ref={superInput}
-        class="superInput"
+        class={`superInput ${props.class || ''}`}
         autocomplete="off"
         onpaste={async (e) => {
           const pastedText = e.clipboardData?.getData('text');

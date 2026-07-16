@@ -276,12 +276,12 @@ export default async (request: Request, context: Context) => {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="description" content="${data.title || ''} by ${(data.channelTitle || '').replace(' - Topic', '')} in ytify">
+  <meta name="description" content="${data.title || ''} by ${(data.channelTitle || '').replace(' - Topic', '')} in Loudara">
   <meta property="og:title" content="${data.title || ''}">
   <meta property="og:description" content="By ${(data.channelTitle || '').replace(' - Topic', '')}">
   <meta property="og:image" content="${thumbnail}">
   <meta property="og:type" content="website">
-  <title>${data.title || 'Playback'} | ytify</title>
+  <title>${data.title || 'Playback'} | Loudara</title>
   <script>location.replace('/?s=${id}')</script>
 </head>
 <body>Redirecting...</body>

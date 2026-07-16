@@ -1,19 +1,11 @@
 import { playerStore } from "@stores";
 import { convertSStoHHMMSS, getCollection } from "@utils";
 import { drawer, setDrawer } from "@utils";
-
-type RecommendedVideo = {
-  title: string;
-  author: string;
-  lengthSeconds: number;
-  videoId: string;
-  authorUrl: string;
-  authorId: string;
-};
+import type { RecommendedStream } from "@core/streaming";
 
 export default function(
   id: string,
-  relatedStreams: RecommendedVideo[]
+  relatedStreams: RecommendedStream[]
 ) {
   if (id !== playerStore.stream.id) return;
 
@@ -22,7 +14,7 @@ export default function(
   relatedStreams?.forEach(
     stream => {
       if (
-        stream.lengthSeconds < 100 || stream.lengthSeconds > 3000) return;
+        stream.duration < 100 || stream.duration > 3000) return;
 
       const rsId = stream.videoId;
 
@@ -35,8 +27,8 @@ export default function(
           id: rsId,
           title: stream.title,
           author: stream.author,
-          duration: convertSStoHHMMSS(stream.lengthSeconds),
-          authorId: stream.authorId || stream.authorUrl?.slice(9) || '',
+          duration: convertSStoHHMMSS(stream.duration),
+          authorId: stream.authorId || '',
           type: 'video' as const,
           frequency: 1
         });
