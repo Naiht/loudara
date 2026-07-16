@@ -20,18 +20,21 @@ const ALLOWED_ORIGINS = [
 ];
 
 export interface Env {
-  // Add any environment variables here if needed
+  ASSETS?: {
+    fetch: (input: Request | string | URL, init?: RequestInit) => Promise<Response>;
+  };
 }
 
 export default {
   async fetch(
     request: Request,
-    _env: Env,
+    env: Env,
     _ctx: ExecutionContext
   ): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
     const allowedOrigin = (origin && ALLOWED_ORIGINS.includes(origin)) ? origin : 'https://loudara.app';
+    const pathname = url.pathname;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigin,
@@ -46,6 +49,13 @@ export default {
         status: 204,
         headers: corsHeaders
       });
+    }
+
+    if (pathname.startsWith('/s/')) {
+      const sharedId = pathname.split('/')[2];
+      if (sharedId) {
+        return Response.redirect(`${url.origin}/?s=${sharedId}`, 302);
+      }
     }
 
     const path = url.pathname.replace(/^\/api\//, '').replace(/^\//, '');
@@ -158,6 +168,10 @@ export default {
                 'Cache-Control': 's-maxage=1800, stale-while-revalidate=300'
               }
             });
+          }
+
+          if (env.ASSETS) {
+            return env.ASSETS.fetch(request);
           }
 
           return new Response(JSON.stringify({ error: 'Not Found' }), {

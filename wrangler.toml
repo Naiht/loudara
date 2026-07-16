@@ -5,3 +5,24 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [observability]
 enabled = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = [
+  "/album",
+  "/artist",
+  "/channel",
+  "/gallery",
+  "/playlist",
+  "/search",
+  "/search-suggestions",
+  "/similar",
+  "/subfeed",
+  "/trending",
+  "/stream/*",
+  "/media/*",
+  "/api/*",
+  "/s/*"
+]
