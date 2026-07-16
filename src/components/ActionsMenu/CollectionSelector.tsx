@@ -15,7 +15,7 @@ export default function(_: {
     if (!value) return;
 
     if (isNew) {
-      title = prompt('Collection Title ?')?.trim();
+      title = prompt(t('collection_selector_title_prompt'))?.trim();
 
       if (title) {
         createCollection(title);
@@ -58,14 +58,14 @@ export default function(_: {
       <option value="" selected disabled>&#xf00e</option>
       <option value="+cl">{t('collection_selector_create_new')}</option>
       <Show when={getKeys(true).length}>
-        <optgroup label="Add to Collection">
+        <optgroup label={t('collection_selector_add_group')}>
           <For each={getKeys(true)}>
             {(v) => <option value={v}>{v}</option>}
           </For>
         </optgroup>
       </Show>
       <Show when={getKeys(false).length}>
-        <optgroup label="Remove from Collection">
+        <optgroup label={t('collection_selector_remove_group')}>
 
           <For each={getKeys(false)}>
             {(v) => <option value={'-cl' + v}>{v}</option>}

@@ -156,7 +156,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-5);
-  background: #050606;
+  background: rgb(5 6 6 / 50%);
 }
 
 .ld-modal__panel {

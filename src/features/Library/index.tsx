@@ -6,6 +6,7 @@ import { getLibraryAlbums, config, getMeta, getLists } from "@utils";
 import { t, setNavStore, store } from "@stores";
 import ListItem from "@components/ListItem";
 import Dropdown from "./Dropdown";
+import ImportYoutubePlaylistModal from "./ImportYoutubePlaylistModal";
 
 const Gallery = lazy(() => import('./Gallery'));
 const SubFeed = lazy(() => import('./SubFeed'));
@@ -14,6 +15,7 @@ const SubFeed = lazy(() => import('./SubFeed'));
 export default function() {
   const [showGallery, setShowGallery] = createSignal(false);
   const [showSubFeed, setShowSubFeed] = createSignal(false);
+  const [showImportPlaylistModal, setShowImportPlaylistModal] = createSignal(false);
   let libraryRef!: HTMLElement;
   let syncBtn!: HTMLElement;
 
@@ -31,6 +33,15 @@ export default function() {
         <p>{t('nav_library')}</p>
 
         <div class="right-group">
+          <button
+            class="library__import-playlist-button"
+            type="button"
+            onClick={() => setShowImportPlaylistModal(true)}
+          >
+            <i class="ri-play-list-add-line" aria-hidden="true" />
+            <span>{t('library_import_youtube_playlist')}</span>
+          </button>
+
           <Show when={config.dbsync}>
             <i
               id="syncNow"
@@ -113,7 +124,7 @@ export default function() {
         <article>
           <p>
             <i class='ri-youtube-fill'></i>&nbsp;
-            {t('library_playlists')}
+            {t('library_playlists_youtube')}
           </p>
           <div>
             <For each={getLists('playlists')}>
@@ -132,6 +143,10 @@ export default function() {
       </Show>
 
       <br />
+      <ImportYoutubePlaylistModal
+        open={showImportPlaylistModal()}
+        onClose={() => setShowImportPlaylistModal(false)}
+      />
 
     </section>
   );

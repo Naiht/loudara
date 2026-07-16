@@ -6,6 +6,7 @@ import { themer, syncLibrary } from '@utils';
 import { updateLang, setStore, store, navStore } from '@stores';
 import AppShell from './layouts/AppShell';
 import './styles/global.css';
+import 'remixicon/fonts/remixicon.css';
 
 updateLang().then(() => {
   themer();

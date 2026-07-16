@@ -3,6 +3,17 @@ import { config, player } from "@utils";
 import type { StreamData } from "@core/streaming";
 
 export const idFromURL = (link: string | null) => link?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)([_0-9a-z-]+)/i)?.[7];
+export function playlistIdFromURL(link: string | null) {
+  if (!link) return '';
+
+  try {
+    const url = new URL(link);
+    return url.searchParams.get('list') || '';
+  } catch {
+    const match = link.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    return match?.[1] || '';
+  }
+}
 
 export function shuffle<T>(array: T[]): T[] {
   let currentIndex = array.length;

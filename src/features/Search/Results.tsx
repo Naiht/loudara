@@ -1,5 +1,5 @@
 import { createEffect, For, onCleanup, Show, untrack } from 'solid-js';
-import { getList, getSearchResults, searchStore, setListStore, setSearchStore } from '@stores';
+import { getList, getSearchResults, searchStore, setListStore, setSearchStore, t } from '@stores';
 import { generateImageUrl } from '@utils';
 import StreamItem from '@components/StreamItem';
 
@@ -7,8 +7,33 @@ export default function SearchResults() {
   let sentinel!: HTMLDivElement;
 
   const isTrack = (item: YTItem | YTListItem): item is YTItem => item.type === 'video' || item.type === 'song';
-  const featuredItems = () => searchStore.results.filter((item): item is YTListItem => !isTrack(item));
+  const listItems = () => searchStore.results.filter((item): item is YTListItem => !isTrack(item));
+  const featuredItem = () => {
+    const items = listItems();
+    return items.find(item => item.type === 'channel' || item.type === 'artist') || items[0];
+  };
+  const secondaryItems = () => {
+    const featured = featuredItem();
+    return listItems().filter(item => item !== featured);
+  };
   const trackItems = () => searchStore.results.filter(isTrack);
+
+  function getEntityLabel(item: YTListItem) {
+    if (item.type === 'artist') return t('library_artists');
+    if (item.type === 'channel') return t('library_channels');
+    if (item.type === 'playlist') return t('library_playlists');
+    return t('library_albums');
+  }
+
+  function getEntityMeta(item: YTListItem) {
+    const secondary = item.type === 'artist' || item.type === 'channel'
+      ? item.subscribers
+      : item.type === 'playlist'
+        ? item.videoCount
+        : item.year;
+
+    return secondary ? `${getEntityLabel(item)} • ${secondary}` : getEntityLabel(item);
+  }
 
   function openList(item: YTListItem) {
     setListStore('img', item.img);
@@ -57,24 +82,24 @@ export default function SearchResults() {
         <i class="ri-loader-3-line loading-spinner"></i>
       </Show>
 
-      <For each={featuredItems()}>
+      <Show when={featuredItem()}>
         {(item) => (
           <button
             class="search-featured-entity"
+            classList={{ 'search-featured-entity--channel': item().type === 'channel' || item().type === 'artist' }}
+            style={{ '--entity-image': `url(${generateImageUrl(item().img, '720')})` }}
             type="button"
-            onClick={() => openList(item)}
+            onClick={() => openList(item())}
           >
-            <img src={generateImageUrl(item.img, '')} alt="" />
+            <img src={generateImageUrl(item().img, '')} alt="" />
             <span>
-              <strong>{item.name}</strong>
-              <small>
-                {item.type === 'artist' || item.type === 'channel' ? 'Artista / canal' : item.type}
-                {'subscribers' in item && item.subscribers ? ` • ${item.subscribers}` : ''}
-              </small>
+              <small class="search-featured-entity__eyebrow">{getEntityLabel(item())}</small>
+              <strong>{item().name}</strong>
+              <small class="search-featured-entity__meta">{getEntityMeta(item())}</small>
             </span>
           </button>
         )}
-      </For>
+      </Show>
 
       <For each={trackItems()}>
         {(item) => (
@@ -87,6 +112,25 @@ export default function SearchResults() {
               }
             }}
           />
+        )}
+      </For>
+
+      <For each={secondaryItems()}>
+        {(item) => (
+          <button
+            class="search-featured-entity"
+            classList={{ 'search-featured-entity--channel': item.type === 'channel' || item.type === 'artist' }}
+            style={{ '--entity-image': `url(${generateImageUrl(item.img, '720')})` }}
+            type="button"
+            onClick={() => openList(item)}
+          >
+            <img src={generateImageUrl(item.img, '')} alt="" />
+            <span>
+              <small class="search-featured-entity__eyebrow">{getEntityLabel(item)}</small>
+              <strong>{item.name}</strong>
+              <small class="search-featured-entity__meta">{getEntityMeta(item)}</small>
+            </span>
+          </button>
         )}
       </For>
 

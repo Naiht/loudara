@@ -79,6 +79,25 @@ export default function(data: YTItem & {
     });
   }
 
+  function buildPlaylistPlaybackContext() {
+    if (!data.context || data.context.id === 'history') return null;
+    if (data.context.src !== 'collection' && data.context.src !== 'playlists' && data.context.src !== 'channels') return null;
+
+    const sourceItems = data.context.src === 'collection'
+      ? getCollectionItems(data.context.id)
+      : data.context.src === 'channels' && data.context.id.startsWith('top-tracks:')
+        ? listStore.topTracks
+        : listStore.list;
+
+    const currentIndex = sourceItems.findIndex(item => item.id === data.id);
+    if (currentIndex === -1) return null;
+
+    return {
+      previousItems: sourceItems.slice(0, currentIndex).reverse(),
+      nextItems: sourceItems.slice(currentIndex + 1)
+    };
+  }
+
   return (
     <a
       class='streamItem card card--interactive'
@@ -114,7 +133,12 @@ export default function(data: YTItem & {
           return;
         }
 
-        if (playerStore.stream.id) {
+        const playlistPlaybackContext = buildPlaylistPlaybackContext();
+
+        if (playlistPlaybackContext) {
+          setQueueStore('history', playlistPlaybackContext.previousItems);
+          setQueueStore('list', playlistPlaybackContext.nextItems);
+        } else if (playerStore.stream.id) {
           setQueueStore('history', h => [{ ...playerStore.stream }, ...h]);
         }
 
@@ -146,8 +170,7 @@ export default function(data: YTItem & {
           if (config.watchMode)
             navStore.player.ref?.scrollIntoView();
         }
-
-        if (config.contextualFill && !queueStore.isSession && (data.context?.src === 'collection' || (data.context?.src === 'playlists')) && data.context?.id !== 'history') {
+        if (!playlistPlaybackContext && config.contextualFill && !queueStore.isSession && (data.context?.src === 'collection' || (data.context?.src === 'playlists')) && data.context?.id !== 'history') {
           const collectionItems = data.context.src === 'collection' ? getCollectionItems(data.context.id) :
             listStore.list;
           const currentIndex = collectionItems.findIndex(item => item.id === data.id);
@@ -192,14 +215,12 @@ export default function(data: YTItem & {
     >
       <span>
         <Show when={!isAlbum && config.loadImage} fallback={data.duration}>
-
           <img
             crossorigin='anonymous'
             onerror={handleThumbnailError}
             onload={handleThumbnailLoad}
             src={getImage()}
           />
-          <p class='duration'>{data.duration}</p>
         </Show>
       </span>
       <div class='metadata'>
@@ -211,6 +232,9 @@ export default function(data: YTItem & {
           </Show>
         </div>
       </div>
+      <Show when={!isAlbum && data.duration}>
+        <p class="streamItem__duration">{data.duration}</p>
+      </Show>
       <Show when={data.draggable}>
         <i aria-label="Drag" class="ri-draggable"></i>
       </Show>

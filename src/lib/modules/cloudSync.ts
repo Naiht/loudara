@@ -9,7 +9,7 @@ import { setStore, t } from "@stores";
 
 // --- Type Definitions ---
 
-type CollectionData = string[] | Channel[] | Playlist[] | Album[];
+type CollectionData = string[] | Channel[] | Playlist[] | Album[] | ImportedPlaylistSources;
 
 interface LibrarySnapshot {
   meta: Meta;

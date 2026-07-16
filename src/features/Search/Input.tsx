@@ -112,7 +112,8 @@ export default function(props: { class?: string } = {}) {
                 classList={{
                   hover: index() === searchStore.suggestions.index
                 }}
-                onclick={() => {
+                onPointerDown={(e) => {
+                  e.preventDefault();
                   textToSearch(item);
                 }}
               >{item}</li>

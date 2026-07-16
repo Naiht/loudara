@@ -1,38 +1,35 @@
-import { onMount } from "solid-js";
+import { createEffect, onCleanup } from "solid-js";
 import { setStore, store } from "@stores";
+import "./SnackBar.css";
 
 export default function() {
-  let snackbar!: HTMLParagraphElement;
+  createEffect(() => {
+    const message = store.snackbar;
+    if (!message) return;
 
-  onMount(() => {
-    setTimeout(() => {
-      if (snackbar.textContent === store.snackbar)
+    const timeoutId = window.setTimeout(() => {
+      if (store.snackbar === message) {
         setStore('snackbar', undefined);
-    }, 7000);
+      }
+    }, 4200);
+
+    onCleanup(() => window.clearTimeout(timeoutId));
   });
 
   return (
-    <p
-      ref={snackbar}
-      style={{
-        'position': 'absolute',
-        'z-index': 9,
-        'bottom': '10dvmin',
-        'left': '10dvmin',
-        'max-width': '90dvmin',
-        'padding': 'var(--size-1) var(--size-2)',
-        'background-color': 'var(--bg)',
-        'color': 'var(--text)',
-        'border': 'var(--border)',
-        'border-radius': 'var(--roundness)',
-        'animation': 'var(--animation-fade-out) forwards, var(--animation-slide-out-down)',
-        'animation-timing-function': 'var(--ease-elastic-in-out-3)',
-        'animation-duration': '1s'
-      }}
-      onclick={() => {
-        setStore('snackbar', undefined);
-      }}
-      textContent={store.snackbar}
-    ></p>
+    <button
+      class="snackbar-toast"
+      type="button"
+      aria-live="polite"
+      role="status"
+      onclick={() => setStore('snackbar', undefined)}
+    >
+      <span class="snackbar-toast__icon" aria-hidden="true">
+        <i class="ri-checkbox-circle-fill" />
+      </span>
+      <span class="snackbar-toast__content">
+        {store.snackbar}
+      </span>
+    </button>
   );
 }

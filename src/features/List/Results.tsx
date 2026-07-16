@@ -1,5 +1,5 @@
-import { Accessor, For, Show, lazy } from "solid-js";
-import { listStore, loadAll, setListStore, t } from "@stores";
+import { Accessor, For, Show, createEffect, lazy, onCleanup, untrack } from "solid-js";
+import { listStore, loadAll, loadMoreList, setListStore, t } from "@stores";
 import StreamItem from "@components/StreamItem";
 import { getCollection, metaUpdater, saveCollection } from "@utils";
 
@@ -14,6 +14,7 @@ export default function Results(_: {
     get: (id: string) => boolean
   }
 }) {
+  let sentinel!: HTMLDivElement;
 
   const items = () => _.items || (listStore.list as TrackItem[]);
 
@@ -33,12 +34,51 @@ export default function Results(_: {
     }
   };
 
+  createEffect(() => {
+    const canObserve = Boolean(
+      sentinel &&
+      listStore.type === 'channels' &&
+      listStore.hasContinuation &&
+      !listStore.isLoading &&
+      !listStore.isLoadingMore
+    );
+
+    items().length;
+
+    untrack(() => listStore.observer.disconnect());
+
+    if (!canObserve) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          loadMoreList();
+        }
+      },
+      {
+        root: document.querySelector('.app-main__scroller'),
+        rootMargin: '420px 0px',
+        threshold: 0.01
+      }
+    );
+
+    observer.observe(sentinel);
+    setListStore('observer', observer);
+  });
+
+  onCleanup(() => {
+    listStore.observer.disconnect();
+  });
+
   return (
     <Show
       when={!listStore.isLoading}
       fallback={<i class="ri-loader-3-line loading-spinner"></i>}
     >
-      <div class="listContainer">
+      <div
+        class="listContainer"
+        classList={{ 'listContainer--single-column': listStore.type === 'channels' }}
+      >
         <Show when={_.draggable} fallback={
           <For each={items()}>{
             (item) =>
@@ -78,6 +118,13 @@ export default function Results(_: {
           <button class="loadAllBtn" onclick={loadAll}>
             {t('list_load_all')}
           </button>
+        </Show>
+        <Show when={listStore.type === 'channels'}>
+          <div ref={sentinel} class="listContainer__sentinel" aria-hidden="true">
+            <Show when={listStore.isLoadingMore}>
+              <i class="ri-loader-3-line loading-spinner"></i>
+            </Show>
+          </div>
         </Show>
       </div>
     </Show>

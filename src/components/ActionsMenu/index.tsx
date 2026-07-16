@@ -1,10 +1,10 @@
 import { getDownloadLink, addToCollection, getCollection, removeFromCollection, generateImageUrl, config } from '@utils';
 import './ActionsMenu.css';
 import { onCleanup, onMount, Show, createEffect, createSignal } from 'solid-js';
-import { render } from 'solid-js/web';
+//import { render } from 'solid-js/web';
 import { LikeButton } from '@components/MediaPartials';
 import CollectionSelector from './CollectionSelector';
-import { setStore, store, t, playerStore, getList, setListStore, addToQueue, queueStore, setQueueStore, setNavStore } from '@stores';
+import { setStore, store, t, getList, setListStore, addToQueue, queueStore, setQueueStore, setNavStore } from '@stores';
 
 
 export default function() {
@@ -37,6 +37,21 @@ export default function() {
   const [isDownloading, setIsDownloading] = createSignal(false);
   const [isViewingAuthor, setIsViewingAuthor] = createSignal(false);
   const [isViewingAlbum, setIsViewingAlbum] = createSignal(false);
+
+  function enqueueFromActionsMenu(options: { prepend?: boolean } = {}) {
+    const { actionsMenu } = store;
+    if (!actionsMenu) return;
+
+    const previousLength = queueStore.list.length;
+    addToQueue([{
+      ...actionsMenu,
+      context: { src: '', id: Date.now().toString() }
+    }], options);
+
+    if (queueStore.list.length > previousLength) {
+      setStore('snackbar', t('actions_menu_enqueue_success'));
+    }
+  }
 
   createEffect(() => {
     const { id } = store.actionsMenu as TrackItem;
@@ -95,25 +110,14 @@ export default function() {
         </li>
 
         <li tabindex="0" onclick={() => {
-          const { actionsMenu } = store;
-          if (actionsMenu)
-            addToQueue([{
-              ...actionsMenu,
-              context: { src: '', id: Date.now().toString() }
-            }], { prepend: true });
-
+          enqueueFromActionsMenu({ prepend: true });
           closeDialog();
         }}>
           <i class="ri-skip-forward-fill"></i>{t('player_play_next')}
         </li>
 
         <li tabindex="1" onclick={() => {
-          const { actionsMenu } = store;
-          if (actionsMenu)
-            addToQueue([{
-              ...actionsMenu,
-              context: { src: '', id: Date.now().toString() }
-            }]);
+          enqueueFromActionsMenu();
           closeDialog();
         }}>
           <i class="ri-list-check-2"></i>{t('actions_menu_enqueue')}
@@ -221,7 +225,7 @@ export default function() {
 
 
 
-        <li tabindex="7" onclick={() => {
+        {/*<li tabindex="7" onclick={() => {
 
           const output = store.actionsMenu || playerStore.data;
           const P = () => {
@@ -246,7 +250,7 @@ export default function() {
 
         }}>
           <i class="ri-braces-line"></i>{t('actions_menu_debug_info')}
-        </li>
+        </li> */}
 
 
         <li tabindex="8" onclick={() => {

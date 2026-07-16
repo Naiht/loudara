@@ -39,10 +39,10 @@ export function shareCollection(data: TrackItem[]) {
       const blob = new Blob([shareUrl], { type });
       const link = [new ClipboardItem({ [type]: blob })];
       navigator.clipboard.write(link);
-      setStore('snackbar', 'Collection link copied to clipboard!');
+      setStore('snackbar', 'Playlist link copied to clipboard!');
     })
     .catch(() => {
-      setStore('snackbar', 'Failed to share collection.');
+      setStore('snackbar', 'Failed to share playlist.');
     })
     .finally(() => setListStore('isLoading', false));
 

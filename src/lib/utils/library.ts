@@ -1,5 +1,5 @@
-import { setStore, t, listStore, setListStore, navStore, setNavStore, updateParam } from '@stores';
-import { config, drawer, setDrawer, parseDuration } from '@utils';
+import { setStore, t, listStore, setListStore, navStore, setNavStore, updateParam, store } from '@stores';
+import { config, drawer, setDrawer, parseDuration, playlistIdFromURL } from '@utils';
 
 export const syncLibrary = (action: 'add' | 'remove' | 'schedule' | 'init', id?: string) => {
   if (config.dbsync)
@@ -11,6 +11,8 @@ export const syncLibrary = (action: 'add' | 'remove' | 'schedule' | 'init', id?:
         else if (action === 'init') m.runSync(config.dbsync);
       });
 };
+
+const PLAYLIST_SOURCES_KEY = 'library_playlist_sources';
 
 
 // New Library V2 utils
@@ -49,6 +51,11 @@ export const getMeta = (): Meta => {
     newMeta.playlists = now;
   }
 
+  const playlistSources = getImportedPlaylistSources();
+  if (Object.keys(playlistSources).length > 0) {
+    newMeta.playlist_sources = now;
+  }
+
   const albums = getLibraryAlbums();
   if (Object.keys(albums).length > 0) {
     newMeta.albums = now;
@@ -63,7 +70,7 @@ export const getCollectionsKeys = () => {
     .keys(localStorage)
     .filter(key => key.startsWith('library_'))
     .map(key => key.slice(8))
-    .filter(key => !['channels', 'playlists', 'tracks', 'meta', 'albums']
+    .filter(key => !['channels', 'playlists', 'tracks', 'meta', 'albums', 'playlist_sources']
       .includes(key));
 
   const reservedOrder = ['history', 'favorites', 'liked', 'listenLater'];
@@ -83,6 +90,137 @@ export const getCollection = (name: string) => JSON.parse(localStorage.getItem('
 export const getLists = <T extends 'channels' | 'playlists'>(type: T): T extends 'channels' ? Channel[] : Playlist[] => JSON.parse(localStorage.getItem('library_' + type) || '[]');
 
 export const getLibraryAlbums = (): LibraryAlbums => JSON.parse(localStorage.getItem('library_albums') || '[]');
+
+export const getImportedPlaylistSources = (): ImportedPlaylistSources =>
+  JSON.parse(localStorage.getItem(PLAYLIST_SOURCES_KEY) || '{}');
+
+export function getImportedPlaylistSource(name: string): ImportedPlaylistSource | null {
+  const sources = getImportedPlaylistSources();
+  return sources[name] || null;
+}
+
+function saveImportedPlaylistSources(sources: ImportedPlaylistSources) {
+  localStorage.setItem(PLAYLIST_SOURCES_KEY, JSON.stringify(sources));
+  metaUpdater('playlist_sources');
+}
+
+export function saveImportedPlaylistSource(name: string, source: ImportedPlaylistSource) {
+  const sources = getImportedPlaylistSources();
+  sources[name] = source;
+  saveImportedPlaylistSources(sources);
+}
+
+export function removeImportedPlaylistSource(name: string) {
+  const sources = getImportedPlaylistSources();
+  if (!sources[name]) return;
+
+  delete sources[name];
+
+  if (Object.keys(sources).length === 0) {
+    localStorage.removeItem(PLAYLIST_SOURCES_KEY);
+    metaUpdater('playlist_sources', true);
+    return;
+  }
+
+  saveImportedPlaylistSources(sources);
+}
+
+export function renameImportedPlaylistSource(oldName: string, newName: string) {
+  const sources = getImportedPlaylistSources();
+  if (!sources[oldName]) return;
+
+  sources[newName] = sources[oldName];
+  delete sources[oldName];
+  saveImportedPlaylistSources(sources);
+}
+
+export function isImportedPlaylist(name: string) {
+  return Boolean(getImportedPlaylistSource(name));
+}
+
+export function createUniquePlaylistTitle(baseTitle: string) {
+  const cleanTitle = baseTitle.trim() || t('library_youtube_playlist_fallback_name');
+  const existing = new Set(getCollectionsKeys());
+
+  if (!existing.has(cleanTitle)) return cleanTitle;
+
+  let suffix = 2;
+  let nextTitle = `${cleanTitle} (${suffix})`;
+  while (existing.has(nextTitle)) {
+    suffix += 1;
+    nextTitle = `${cleanTitle} (${suffix})`;
+  }
+
+  return nextTitle;
+}
+
+async function fetchPlaylistSnapshot(playlistId: string) {
+  const response = await fetch(`${store.api}/playlist?id=${encodeURIComponent(playlistId)}&all=true`);
+  if (!response.ok) {
+    throw new Error(t('library_youtube_playlist_fetch_error'));
+  }
+
+  const data = await response.json() as YTPlaylistItem;
+  if (data.type !== 'playlist') {
+    throw new Error(t('library_youtube_playlist_invalid_url'));
+  }
+
+  return data;
+}
+
+export async function importYoutubePlaylist(url: string) {
+  const playlistId = playlistIdFromURL(url);
+  if (!playlistId) {
+    throw new Error(t('library_youtube_playlist_invalid_url'));
+  }
+
+  const playlist = await fetchPlaylistSnapshot(playlistId);
+  const playlistTitle = createUniquePlaylistTitle(playlist.name || t('library_youtube_playlist_fallback_name'));
+  const items = playlist.items || [];
+
+  createCollection(playlistTitle);
+  addToCollection(playlistTitle, items);
+  saveImportedPlaylistSource(playlistTitle, {
+    sourceId: playlistId,
+    sourceUrl: url,
+    sourceName: playlist.name || playlistTitle,
+    author: playlist.author || '',
+    img: playlist.img || '',
+    lastSyncedAt: Date.now()
+  });
+
+  return {
+    title: playlistTitle,
+    addedCount: items.length
+  };
+}
+
+export async function resyncImportedPlaylist(name: string) {
+  const source = getImportedPlaylistSource(name);
+  if (!source) {
+    throw new Error(t('list_resync_unavailable'));
+  }
+
+  const playlist = await fetchPlaylistSnapshot(source.sourceId);
+  const existingIds = new Set(getCollection(name));
+  const newItems = (playlist.items || []).filter(item => !existingIds.has(item.id));
+
+  if (newItems.length > 0) {
+    addToCollection(name, newItems);
+  }
+
+  saveImportedPlaylistSource(name, {
+    ...source,
+    sourceName: playlist.name || source.sourceName,
+    author: playlist.author || source.author || '',
+    img: playlist.img || source.img || '',
+    lastSyncedAt: Date.now()
+  });
+
+  return {
+    addedCount: newItems.length
+  };
+}
 
 export function getCollectionItems(collectionId: string): TrackItem[] {
   const collectionIds = getCollection(collectionId);
@@ -230,6 +368,7 @@ export function deleteCollection(name: string) {
   }
 
   localStorage.removeItem('library_' + name);
+  removeImportedPlaylistSource(name);
   saveTracksMap(tracks);
   metaUpdater(name, true);
   rehydrateStores();
@@ -275,6 +414,7 @@ export function renameCollection(oldName: string, newName: string) {
   const collectionItems = getCollection(oldName);
   saveCollection(newName, collectionItems);
   localStorage.removeItem('library_' + oldName);
+  renameImportedPlaylistSource(oldName, newName);
   metaUpdater(oldName, true);
   metaUpdater(newName);
   rehydrateStores();
@@ -301,15 +441,19 @@ export async function fetchCollection(
 
   setListStore('isLoading', true);
 
-  const display = shared ? 'Shared Collection' : id;
+  const display = shared ? 'Shared Playlist' : id;
   const { reservedCollections } = listStore;
   const isReserved = reservedCollections.includes(id);
+  const syncSource = shared ? null : getImportedPlaylistSource(id);
 
   setListStore({
     name: decodeURIComponent(display),
     type: 'collection',
     isReversed: isReserved,
-    isShared: shared
+    isShared: shared,
+    syncSource,
+    author: syncSource?.author || '',
+    img: syncSource?.img || ''
   });
 
   if (shared) {
@@ -357,6 +501,7 @@ function getLocalCollection(
   }
 
   const tracks = getTracksMap();
+  const syncSource = getImportedPlaylistSource(decodeURI(collection));
 
   let sortedIds = ids;
   const isReserved = listStore.reservedCollections.includes(decodeURI(collection));
@@ -370,7 +515,10 @@ function getLocalCollection(
 
   setListStore({
     name: collection,
-    length: sortedIds.length
+    length: sortedIds.length,
+    syncSource,
+    author: syncSource?.author || '',
+    img: syncSource?.img || ''
   });
 
   if (usePagination) {
@@ -422,13 +570,13 @@ async function getSharedCollection(
       setListStore('list', data);
     } else if (typeof data === 'object' && data.tracks) {
       setListStore({
-        name: data.collection || 'Shared Collection',
+        name: data.collection || 'Shared Playlist',
         list: data.tracks
       });
     }
   }
   else
-    setStore('snackbar', `Collection does not exist`);
+    setStore('snackbar', `Playlist does not exist`);
 
   setListStore('isLoading', false);
 }

@@ -1,5 +1,5 @@
 import { createSignal, For, Show, createMemo } from "solid-js";
-import { ensureReservedCollections, fetchCollection, getCollectionsKeys, getTracksMap, hasLegacyLibrary, drawer } from "@utils";
+import { ensureReservedCollections, fetchCollection, getCollectionsKeys, getTracksMap, hasLegacyLibrary, drawer, isImportedPlaylist } from "@utils";
 import { t, setListStore, setNavStore } from "@stores";
 import StreamItem from "@components/StreamItem";
 
@@ -86,6 +86,10 @@ export default function() {
       </Show>
       <Show when={!searchText()}>
         <Show when={getCollectionsKeys().length} fallback={t('library_empty')}>
+          <p class="library-section-label">
+            <i class="ri-play-list-2-fill"></i>
+            {t('library_collections')}
+          </p>
           <For each={getCollectionsKeys()}>
             {(item) => (
               <a
@@ -97,7 +101,7 @@ export default function() {
                 }}
               >{<Show
                 when={item in reservedCollections}
-                fallback={<><i class='ri-play-list-2-fill'></i>{item}</>
+                fallback={<><i class={isImportedPlaylist(item) ? 'ri-youtube-fill' : 'ri-play-list-2-fill'}></i>{item}</>
                 }
               >
                 <i class={reservedCollections[item as 'history'][0]}></i>

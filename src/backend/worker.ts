@@ -69,8 +69,9 @@ export default {
         }
         case 'channel': {
           const id = searchParams.get('id');
+          const page = Number(searchParams.get('page') || '1');
           if (!id) throw new Error('Missing id parameter');
-          data = await getChannel(id);
+          data = await getChannel(id, Number.isFinite(page) ? Math.max(1, page) : 1);
           break;
         }
         case 'gallery': {

@@ -1,19 +1,90 @@
-import { createSignal, For, onMount, Show } from 'solid-js';
-import { getList, setListStore, store, t } from '@stores';
-import { generateImageUrl } from '@utils';
-import StreamItem from '@components/StreamItem';
+import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
+import { navStore, playerStore, setNavStore, setPlayerStore, setQueueStore, store, t } from '@stores';
+import { config, drawer, generateImageUrl, getCollection, getTracksMap, player } from '@utils';
+
+type ShelfTrack = TrackItem & {
+  img?: string;
+  albumId?: string;
+  type?: 'video' | 'song';
+  subtext?: string;
+};
 
 export default function Trending() {
   const [items, setItems] = createSignal<(YTItem | YTListItem)[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
 
   const isTrack = (item: YTItem | YTListItem): item is YTItem => item.type === 'video' || item.type === 'song';
-  const featuredItems = () => items().filter((item): item is YTListItem => !isTrack(item));
-  const trackItems = () => items().filter(isTrack);
 
-  function openList(item: YTListItem) {
-    setListStore('img', item.img);
-    getList(item.id, item.type);
+  const recentItems = createMemo<ShelfTrack[]>(() => {
+    const historyIds = getCollection('history');
+    const tracksMap = getTracksMap();
+    const recentPool: (ShelfTrack & { recency: number, plays: number })[] = [];
+    const seen = new Set<string>();
+
+    for (let index = 0; index < historyIds.length; index += 1) {
+      const id = historyIds[index];
+      if (seen.has(id) || !tracksMap[id]) continue;
+
+      seen.add(id);
+      recentPool.push({
+        ...tracksMap[id],
+        img: id,
+        type: 'video',
+        recency: index,
+        plays: drawer.libraryPlays[id] || 1
+      });
+
+      if (recentPool.length >= 28) break;
+    }
+
+    return recentPool
+      .sort((a, b) => (b.plays - a.plays) || (a.recency - b.recency))
+      .slice(0, 14)
+      .map(({ recency, plays, ...track }) => track);
+  });
+
+  const trendTracks = createMemo<ShelfTrack[]>(() =>
+    items()
+      .filter(isTrack)
+      .slice(0, 18)
+  );
+
+  function playFromShelf(item: ShelfTrack, shelf: ShelfTrack[], shelfId: string) {
+    const currentIndex = shelf.findIndex(track => track.id === item.id);
+    if (currentIndex === -1) return;
+
+    setQueueStore('history', shelf.slice(0, currentIndex).reverse());
+    setQueueStore('list', shelf.slice(currentIndex + 1));
+
+    setPlayerStore('stream', {
+      id: item.id,
+      title: item.title,
+      author: item.author || '',
+      duration: item.duration,
+      authorId: item.authorId || ''
+    });
+
+    if ('albumId' in item && item.albumId) {
+      setPlayerStore('stream', 'albumId', item.albumId);
+    } else if (playerStore.stream.albumId) {
+      setPlayerStore('stream', 'albumId', undefined);
+    }
+
+    setPlayerStore('context', {
+      src: 'search',
+      id: shelfId
+    });
+
+    const isPortrait = matchMedia('(orientation:portrait)').matches;
+    if (isPortrait || config.landscapeSections === '1') {
+      setNavStore('player', 'state', Boolean(config.watchMode));
+
+      if (config.watchMode) {
+        navStore.player.ref?.scrollIntoView();
+      }
+    }
+
+    player(item.id);
   }
 
   onMount(async () => {
@@ -32,49 +103,68 @@ export default function Trending() {
   return (
     <div class="trending-view">
       <header class="trending-view__header">
-        <p>Tendencias cerca de ti</p>
-        <span>Actualizado desde YouTube Music</span>
+        <p>{t('search_home_title')}</p>
+        <span>{t('search_home_subtitle')}</span>
       </header>
 
       <Show when={!isLoading()} fallback={<i class="ri-loader-3-line loading-spinner"></i>}>
-        <div class="searchlist">
-          <For each={featuredItems()}>
-            {(item) => (
-              <button
-                class="search-featured-entity"
-                type="button"
-                onClick={() => openList(item)}
-              >
-                <img src={generateImageUrl(item.img, '')} alt="" />
-                <span>
-                  <strong>{item.name}</strong>
-                  <small>
-                    {item.type === 'artist' || item.type === 'channel' ? 'Artista / canal' : item.type}
-                    {'subscribers' in item && item.subscribers ? ` • ${item.subscribers}` : ''}
-                  </small>
-                </span>
-              </button>
-            )}
-          </For>
+        <section class="trending-view__section">
+          <div class="trending-view__section-header">
+            <h2>{t('hub_recently_listened')}</h2>
+            <span>{t('search_recent_priority_hint')}</span>
+          </div>
 
-          <For each={trackItems()}>
-            {(item) => (
-              <StreamItem
-                {...{
-                  ...item,
-                  context: {
-                    src: 'search',
-                    id: 'trending'
-                  }
-                }}
-              />
-            )}
-          </For>
-        </div>
+          <Show when={recentItems().length} fallback={<p class="trending-view__empty">{t('hub_recently_listened_fallback')}</p>}>
+            <div class="trending-view__rail">
+              <For each={recentItems()}>
+                {(item) => (
+                  <button
+                    class="trending-track-card"
+                    type="button"
+                    onClick={() => playFromShelf(item, recentItems(), 'recent-blend')}
+                  >
+                    <span class="trending-track-card__art">
+                      <img src={generateImageUrl(item.img || item.id, 'mq')} alt="" />
+                    </span>
+                    <span class="trending-track-card__meta">
+                      <strong>{item.title}</strong>
+                      <small>{item.author?.replace(' - Topic', '')}</small>
+                    </span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+        </section>
 
-        <Show when={!items().length}>
-          <p class="trending-view__empty">{t('loading')}</p>
-        </Show>
+        <section class="trending-view__section">
+          <div class="trending-view__section-header">
+            <h2>{t('search_trending_section')}</h2>
+            <span>{t('search_trending_hint')}</span>
+          </div>
+
+          <Show when={trendTracks().length} fallback={<p class="trending-view__empty">{t('search_trending_empty')}</p>}>
+            <div class="trending-view__rail">
+              <For each={trendTracks()}>
+                {(item) => (
+                  <button
+                    class="trending-track-card"
+                    type="button"
+                    onClick={() => playFromShelf(item, trendTracks(), 'trending')}
+                  >
+                    <span class="trending-track-card__art">
+                      <img src={generateImageUrl(item.img || item.id, 'mq')} alt="" />
+                    </span>
+                    <span class="trending-track-card__meta">
+                      <strong>{item.title}</strong>
+                      <small>{item.author?.replace(' - Topic', '')}</small>
+                    </span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+        </section>
       </Show>
     </div>
   );

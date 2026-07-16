@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
 @import 'tokens.css';
 @import 'reset.css';
 @import 'open-props/normalize.min.css';
 @import 'patterns.css';
 @import 'layout.css';
 @import 'footer.css';
-@import 'remixicon.css';
 @import 'tooltips.css';
 
 :root {
@@ -27,7 +27,7 @@
   --player-bp: 0 0;
   --landscapeSections: 2;
   --trueBg: var(--bg);
-  --font: ui-rounded, Segoe UI, source-sans-pro, Inter, Noto Sans, Oxygen, Calibri, Cantarell, Ubuntu, Roboto, system-ui, Open Sans, Helvetica Neue, sans-serif;
+  --font: var(--font-family-base);
 }
 
 html {
@@ -38,7 +38,9 @@ html {
 body {
   height: 100dvh;
   font-family: var(--font);
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .loudara-theme {

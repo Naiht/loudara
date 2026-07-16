@@ -1,11 +1,21 @@
 import { YTNodes } from 'youtubei.js';
 import { getClient, getThumbnail, formatDuration, getThumbnailId } from './utils.js';
 
-export default async function(id: string) {
+function getRawItems(source: any): any[] {
+  if (!source) return [];
+  if (source.videos && source.videos.length > 0) return source.videos;
+  if (source.page?.contents_memo) {
+    const richItems = source.page.contents_memo.get('RichItem') || [];
+    return Array.from(richItems);
+  }
+  return [];
+}
+
+export default async function(id: string, page = 1) {
   const yt = await getClient();
   const channel = await yt.getChannel(id);
   const metadata = channel.metadata;
-  
+
   let videoTab;
   try {
     videoTab = await channel.getTabByURL('videos');
@@ -13,18 +23,24 @@ export default async function(id: string) {
     videoTab = await channel.getVideos();
   }
 
+  for (let index = 1; index < page; index++) {
+    if (!videoTab?.has_continuation) {
+      return {
+        id,
+        name: metadata.title?.toString() || '',
+        img: '/' + getThumbnailId(getThumbnail(metadata.avatar || [])),
+        items: [],
+        hasContinuation: false,
+        type: 'channel' as const
+      };
+    }
+
+    videoTab = await videoTab.getContinuation();
+  }
+
   const name = metadata.title?.toString() || '';
   const img = '/' + getThumbnailId(getThumbnail(metadata.avatar || []));
-
-  let rawItems: any[] = [];
-  if (videoTab) {
-    if (videoTab.videos && videoTab.videos.length > 0) {
-      rawItems = videoTab.videos;
-    } else if (videoTab.page?.contents_memo) {
-      const richItems = videoTab.page.contents_memo.get('RichItem') || [];
-      rawItems = Array.from(richItems);
-    }
-  }
+  const rawItems = getRawItems(videoTab);
 
   const items = rawItems.map((item) => {
     if (item.is && item.is(YTNodes.Video)) {
@@ -71,10 +87,11 @@ export default async function(id: string) {
   }).filter((item): item is NonNullable<typeof item> => item !== null);
 
   return {
-    id: id,
+    id,
     name,
     img,
     items,
+    hasContinuation: Boolean(videoTab?.has_continuation),
     type: 'channel' as const
   };
 }

@@ -46,6 +46,7 @@ declare global {
     videoCount?: string;
     description?: string;
     items?: YTItem[];
+    hasContinuation?: boolean;
   }
 
   interface YTPlaylistItem extends ListItem {
@@ -80,6 +81,15 @@ declare global {
     author: string
   };
   type Album = Playlist;
+  interface ImportedPlaylistSource {
+    sourceId: string;
+    sourceUrl: string;
+    sourceName: string;
+    author?: string;
+    img?: string;
+    lastSyncedAt: number;
+  }
+  type ImportedPlaylistSources = Record<string, ImportedPlaylistSource>;
 
   type LibraryAlbums = Album[];
 
