@@ -61,6 +61,12 @@ export default defineConfig(({ command }) => ({
             "type": "image/png",
             "sizes": "44x44",
             "purpose": "any"
+          },
+          {
+            "src": "favicon-32.png",
+            "type": "image/png",
+            "sizes": "32x32",
+            "purpose": "any"
           }
         ],
         "shortcuts": [
@@ -107,7 +113,7 @@ export default defineConfig(({ command }) => ({
         }
       },
       disable: command !== 'build',
-      includeAssets: ['*.woff2', 'loudara_banner.webp']
+      includeAssets: ['*.woff2', 'loudara_banner.webp', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon.png']
     })
   ],
   css: {

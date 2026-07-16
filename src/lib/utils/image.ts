@@ -10,19 +10,15 @@ export function generateImageUrl(
   res: string,
   music?: boolean
 ) {
-  let suffix = '';
   let prefix = '';
   if (id.startsWith('/')) {
     prefix = `https://yt3.googleusercontent.com${id}=s${res === 'mq' ? '180' : res || '360'}-c-k-c0x00ffffff-no-rj`;
   }
   else {
-    prefix = `https://i.ytimg.com/vi_webp/${id}/${res}default.webp`;
-    if (music) {
-      const s = res === 'mq' ? '180' : '720';
-      suffix = `?w=${s}&h=${s}`;
-    }
+    const quality = music ? 'hq' : res;
+    prefix = `https://i.ytimg.com/vi/${id}/${quality}default.jpg`;
   }
-  return prefix + suffix;
+  return prefix;
 }
 
 

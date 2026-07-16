@@ -1,5 +1,7 @@
 # Loudara
 
+![Loudara](img/md.png)
+
 Loudara is a modern music player built with SolidJS, TypeScript, CSS and Vite.
 The current goal is to keep the web app fully functional while preparing the same frontend to run inside Tauri.
 

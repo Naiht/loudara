@@ -7,7 +7,7 @@ export default function Header() {
   return (
     <header class="app-header">
       <div class="app-header__logo-slot" aria-label="Loudara">
-        <span aria-hidden="true">L</span>
+        <img src="/icon.png" alt="" aria-hidden="true" />
       </div>
 
       <form class="app-header__search" onSubmit={(e) => e.preventDefault()}>
