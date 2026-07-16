@@ -216,7 +216,6 @@ export default function(data: YTItem & {
       <span>
         <Show when={!isAlbum && config.loadImage} fallback={data.duration}>
           <img
-            crossorigin='anonymous'
             onerror={handleThumbnailError}
             onload={handleThumbnailLoad}
             src={getImage()}

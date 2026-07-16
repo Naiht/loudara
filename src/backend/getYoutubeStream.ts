@@ -1,4 +1,4 @@
-import { Innertube } from 'youtubei.js';
+import { Innertube, UniversalCache } from 'youtubei.js';
 import type { StreamData } from '../core/streaming/types.js';
 
 type YoutubeFormat = {
@@ -46,7 +46,7 @@ type CachedMedia = {
   url: string;
 };
 
-const CLIENTS = ['ANDROID', 'IOS'] as const;
+const CLIENTS = ['ANDROID', 'IOS', 'TV'] as const;
 const INITIAL_DOWNLOAD_CHUNK_SIZE = 1024 * 1024;
 const FOLLOWUP_DOWNLOAD_CHUNK_SIZE = 16 * 1024;
 const MAX_CACHED_AUDIO_BYTES = 32 * 1024 * 1024;
@@ -57,7 +57,12 @@ let innertubePromise: Promise<Innertube> | undefined;
 const mediaUrlCache = new Map<string, CachedMedia>();
 
 function getInnertube(): Promise<Innertube> {
-  innertubePromise ||= Innertube.create();
+  innertubePromise ||= Innertube.create({
+    cache: new UniversalCache(false),
+    generate_session_locally: true,
+    retrieve_player: true,
+    fetch: fetch.bind(globalThis)
+  });
   return innertubePromise;
 }
 
@@ -178,7 +183,14 @@ export async function getYoutubeStream(
 
   for (const client of CLIENTS) {
     try {
-      const info = await innertube.getBasicInfo(videoId, { client }) as YoutubeInfo;
+      let info: YoutubeInfo;
+
+      try {
+        info = await innertube.getBasicInfo(videoId, { client }) as YoutubeInfo;
+      } catch {
+        info = await innertube.getInfo(videoId, { client }) as YoutubeInfo;
+      }
+
       return toStreamData(videoId, info, client, { proxyMedia });
     } catch (error) {
       errors.push(`${client}: ${error instanceof Error ? error.message : String(error)}`);
