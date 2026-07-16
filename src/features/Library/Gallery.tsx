@@ -2,6 +2,7 @@ import { For, Show, createSignal, onMount } from "solid-js";
 import { getTracksMap, getCollection } from "@utils";
 import ListItem from "@components/ListItem";
 import { t, store } from "@stores";
+import { getNativeGallery, isNativeApp } from "@platform/native";
 
 export default function() {
   const [gallery, setGallery] = createSignal({
@@ -39,8 +40,12 @@ export default function() {
 
     setIsGalleryLoading(true);
     try {
-      const res = await fetch(`${store.api}/gallery?id=${artistIds.join(',')}`);
-      const data = await res.json() as { userArtists: Channel[], relatedArtists: Channel[], relatedPlaylists: Playlist[] };
+      const data = isNativeApp
+        ? await getNativeGallery(artistIds)
+        : await fetch(`${store.api}/gallery?id=${artistIds.join(',')}`).then(res => {
+          if (!res.ok) throw new Error('Could not load gallery');
+          return res.json() as Promise<{ userArtists: Channel[], relatedArtists: Channel[], relatedPlaylists: Playlist[] }>;
+        });
       setGallery(data);
     } catch (e) {
       console.error(e);

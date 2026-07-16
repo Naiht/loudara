@@ -1,6 +1,7 @@
 import { createStore } from "solid-js/store";
 import { setNavStore, updateParam, setStore, store, navStore } from "@stores";
 import { getLibraryAlbums, drawer } from "@utils";
+import { getNativeListData, isNativeApp } from "@platform/native";
 
 const initialState = () => ({
   isLoading: false,
@@ -91,6 +92,10 @@ export async function getList(
 
   try {
     const fetchListData = async (requestType: 'playlist' | 'channel' | 'album' | 'artist', page = 1) => {
+      if (isNativeApp) {
+        return getNativeListData(requestType, id, { all, page }) as Promise<YTListItem>;
+      }
+
       const pageQuery = requestType === 'channel' && page > 1 ? `&page=${page}` : '';
       const res = await fetch(`${store.api}/${requestType}?id=${id}${all ? '&all=true' : ''}${pageQuery}`);
       if (!res.ok) throw new Error(`Failed to fetch ${requestType}`);
@@ -198,9 +203,13 @@ export async function loadMoreList() {
   setListStore('isLoadingMore', true);
 
   try {
-    const res = await fetch(`${store.api}/channel?id=${listStore.id}&page=${nextPage}`);
-    if (!res.ok) throw new Error('Failed to fetch channel');
-    const data = await res.json() as YTChannelItem;
+    const data = isNativeApp
+      ? await getNativeListData('channel', listStore.id, { page: nextPage }) as YTChannelItem
+      : await fetch(`${store.api}/channel?id=${listStore.id}&page=${nextPage}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch channel');
+          return res.json() as Promise<YTChannelItem>;
+        });
 
     setListStore('page', nextPage);
     setListStore('hasContinuation', Boolean(data.hasContinuation));

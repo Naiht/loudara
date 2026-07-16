@@ -2,6 +2,7 @@ import { playerStore, setPlayerStore } from '@stores';
 import { streamCache } from '@utils';
 import { StreamUnavailableError, type StreamData } from '@core/streaming';
 import { createWebStreamProvider } from '@platform/web/streaming';
+import { getNativeStreamData, isNativeApp } from '@platform/native';
 
 export default async function(
   id: string,
@@ -10,9 +11,11 @@ export default async function(
   const cached = streamCache.get(id);
 
   try {
-    const data = cached || await createWebStreamProvider({
-      preferredProxy: playerStore.proxy
-    }).getStreamData(id, signal);
+    const data = cached || await (isNativeApp
+      ? getNativeStreamData(id)
+      : createWebStreamProvider({
+        preferredProxy: playerStore.proxy
+      }).getStreamData(id, signal));
 
     streamCache.set(id, data);
     setPlayerStore('proxy', data.proxy || '');

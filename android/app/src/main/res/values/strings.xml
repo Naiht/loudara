@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Loudara</string>
+    <string name="title_activity_main">Loudara</string>
+    <string name="package_name">com.loudara.app</string>
+    <string name="custom_url_scheme">com.loudara.app</string>
+</resources>

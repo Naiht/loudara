@@ -3,6 +3,7 @@ import { createStore } from "solid-js/store";
 import { navStore, params, updateParam, addToQueue, queueStore, setQueueStore, setStore, store, groupQueueByAuthor } from "@stores";
 import { config, cssVar, themer, addToCollection, player, shuffle, streamCache } from "@utils";
 import { isQueuePrefetchActive } from "@modules/queuePrefetch";
+import { getNativeSimilar, isNativeApp } from "@platform/native";
 
 const blankImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
@@ -268,8 +269,19 @@ async function getRecommendations() {
   const currentTitle = playerStore.stream.title;
   const title = encodeURIComponent(currentTitle);
   const artist = encodeURIComponent(playerStore.stream.author?.slice(0, -8) ?? '');
-  fetch(`${store.api}/similar?title=${title}&artist=${artist}&limit=10`)
-    .then(res => res.json())
+  const request = isNativeApp
+    ? getNativeSimilar({
+      title: currentTitle,
+      artist: playerStore.stream.author?.slice(0, -8) ?? '',
+      limit: '10'
+    })
+    : fetch(`${store.api}/similar?title=${title}&artist=${artist}&limit=10`)
+      .then(res => {
+        if (!res.ok) throw new Error('Could not load similar tracks');
+        return res.json();
+      });
+
+  request
     .then(data => addToQueue(data.map((item: TrackItem) => ({
       ...item,
       context: { src: 'queue', id: `Similar to ${currentTitle}` }

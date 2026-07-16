@@ -1,6 +1,7 @@
 import { createStore } from 'solid-js/store';
 import { config, drawer, setDrawer } from '@utils';
 import { updateParam, setStore, store } from '@stores';
+import { getNativeSearchResults, getNativeSearchSuggestions, isNativeApp } from '@platform/native';
 
 type SearchResultPage = {
   items: (YTItem | YTListItem)[];
@@ -85,10 +86,15 @@ export function getSearchSuggestions(text: string) {
     setSearchStore('suggestions', 'controller', newController);
 
     const isMusic = ['song', 'artist', 'album'].includes(config.searchFilter);
-    const url = `/search-suggestions?q=${encodeURIComponent(text)}&music=${isMusic}`;
+    const request = isNativeApp
+      ? getNativeSearchSuggestions(text, isMusic)
+      : fetch(`${store.api}/search-suggestions?q=${encodeURIComponent(text)}&music=${isMusic}`, { signal: newController.signal })
+        .then(res => {
+          if (!res.ok) throw new Error('Could not load search suggestions');
+          return res.json() as Promise<string[]>;
+        });
 
-    fetch(url, { signal: newController.signal })
-      .then(res => res.json() as Promise<string[]>)
+    request
       .then(data => {
         if (newController.signal.aborted || searchStore.query !== text) return;
         setSearchStore('suggestions', 'data', data);
@@ -139,34 +145,36 @@ export async function getSearchResults(options: boolean | { force?: boolean, app
     setDrawer('recentSearches', recentSearches);
   }
 
-  const url = `${store.api}/search?q=${encodeURIComponent(query)}&f=${searchFilter}&page=${nextPage}`;
-
-  fetch(url)
-    .then(res => res.json() as Promise<SearchResultPage | (YTItem | YTListItem)[]>)
-    .then(data => {
-      const payload = normalizeSearchPayload(data);
-
-      setSearchStore('page', nextPage);
-      setSearchStore('hasMore', payload.hasMore && payload.items.length > 0);
-      setSearchStore('results', (current) => append ? mergeUniqueItems(current, payload.items) : payload.items);
-
-      if (!append && payload.items.length < MIN_INITIAL_RESULTS && payload.hasMore) {
-        setTimeout(() => getSearchResults({ append: true }), 0);
-      }
-    })
-    .catch(e => {
-      setStore('snackbar', e.message);
-      if (!append) {
-        setSearchStore('results', []);
-      }
-      setSearchStore('hasMore', false);
-    })
-    .finally(() => {
-      setSearchStore(append ? 'isLoadingMore' : 'isLoading', false);
-    });
-
   if (!append) {
     updateParam('q', query);
     updateParam('f', searchFilter === 'all' ? '' : searchFilter);
+  }
+
+  try {
+    const data = isNativeApp
+      ? await getNativeSearchResults({ q: query, f: searchFilter, page: nextPage })
+      : await fetch(`${store.api}/search?q=${encodeURIComponent(query)}&f=${searchFilter}&page=${nextPage}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Could not load search results');
+          return res.json() as Promise<SearchResultPage | (YTItem | YTListItem)[]>;
+        });
+
+    const payload = normalizeSearchPayload(data);
+
+    setSearchStore('page', nextPage);
+    setSearchStore('hasMore', payload.hasMore && payload.items.length > 0);
+    setSearchStore('results', (current) => append ? mergeUniqueItems(current, payload.items) : payload.items);
+
+    if (!append && payload.items.length < MIN_INITIAL_RESULTS && payload.hasMore) {
+      setTimeout(() => getSearchResults({ append: true }), 0);
+    }
+  } catch (e) {
+    setStore('snackbar', e instanceof Error ? e.message : 'Could not load search results');
+    if (!append) {
+      setSearchStore('results', []);
+    }
+    setSearchStore('hasMore', false);
+  } finally {
+    setSearchStore(append ? 'isLoadingMore' : 'isLoading', false);
   }
 }

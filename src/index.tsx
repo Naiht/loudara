@@ -4,6 +4,7 @@ import { lazy, onMount, Show } from 'solid-js';
 import { Portal, render } from 'solid-js/web';
 import { themer, syncLibrary } from '@utils';
 import { updateLang, setStore, store, navStore } from '@stores';
+import { requestRequiredPermissions } from '@platform/native';
 import AppShell from './layouts/AppShell';
 import './styles/global.css';
 import 'remixicon/fonts/remixicon.css';
@@ -23,6 +24,7 @@ const SnackBar = lazy(() => import('@components/SnackBar'));
 export default function App() {
 
   onMount(async () => {
+    await requestRequiredPermissions();
     await import('@modules/start.ts').then(mod => mod.default());
 
     setStore('syncState', 'synced');
