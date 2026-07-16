@@ -10,21 +10,19 @@ export function generateImageUrl(
   res: string,
   music?: boolean
 ) {
-  const proxy = 'https://wsrv.nl?url=https://';
   let suffix = '';
   let prefix = '';
   if (id.startsWith('/')) {
-    prefix = `yt3.googleusercontent.com${id}=s720-c-k-c0x00ffffff-no-rj`;
-    suffix = `&output=webp&w=${res === 'mq' ? '180' : res || '360'}`;
+    prefix = `https://yt3.googleusercontent.com${id}=s${res === 'mq' ? '180' : res || '360'}-c-k-c0x00ffffff-no-rj`;
   }
   else {
-    prefix = `i.ytimg.com/vi_webp/${id}/${res}default.webp`;
+    prefix = `https://i.ytimg.com/vi_webp/${id}/${res}default.webp`;
     if (music) {
       const s = res === 'mq' ? '180' : '720';
-      suffix = `&w=${s}&h=${s}&fit=cover`;
+      suffix = `?w=${s}&h=${s}`;
     }
   }
-  return proxy + prefix + suffix;
+  return prefix + suffix;
 }
 
 
@@ -38,9 +36,6 @@ export function getThumbIdFromLink(url: string) {
   // for featured playlists
   if (url.startsWith('/') || url.length === 11) return url;
   // simplify url 
-  if (url.includes('wsrv.nl'))
-    url = url.replace('https://wsrv.nl?url=', '');
-
   const l = new URL(url);
   const p = l.pathname;
 

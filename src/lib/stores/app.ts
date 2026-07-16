@@ -20,7 +20,7 @@ const storeInit: {
   locale: string,
   translations: Record<TranslationKeys, string> | {}
 } = {
-  api: import.meta.env.VITE_LOUDARA_API_URL || '',
+  api: import.meta.env.VITE_LOUDARA_API_URL || '/api',
   useSaavn: true,
   locale: initLocale,
   translations: {},

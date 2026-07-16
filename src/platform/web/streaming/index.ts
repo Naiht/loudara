@@ -15,10 +15,13 @@ class WebStreamProvider implements StreamProvider {
   private readonly providers: StreamProvider[];
 
   constructor(options: WebStreamProviderOptions = {}) {
-    this.providers = [
-      new ApiStreamProvider(),
-      new InvidiousStreamProvider({ preferredInstance: options.preferredProxy })
-    ];
+    this.providers = [new ApiStreamProvider()];
+
+    if (import.meta.env.DEV) {
+      this.providers.push(
+        new InvidiousStreamProvider({ preferredInstance: options.preferredProxy })
+      );
+    }
   }
 
   async getStreamData(videoId: string, signal?: AbortSignal): Promise<StreamData> {
