@@ -62,7 +62,8 @@ export default function Trending() {
       title: item.title,
       author: item.author || '',
       duration: item.duration,
-      authorId: item.authorId || ''
+      authorId: item.authorId || '',
+      img: item.img
     });
 
     if ('albumId' in item && item.albumId) {
@@ -77,7 +78,7 @@ export default function Trending() {
     });
 
     const isPortrait = matchMedia('(orientation:portrait)').matches;
-    if (isPortrait || config.landscapeSections === '1') {
+    if (isPortrait) {
       setNavStore('player', 'state', Boolean(config.watchMode));
 
       if (config.watchMode) {

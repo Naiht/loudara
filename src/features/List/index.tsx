@@ -286,7 +286,7 @@ export default function() {
         </section>
       </Show>
 
-      <Show when={config.loadImage && listStore.id.startsWith('MPREb')}>
+      <Show when={config.loadImage && listStore.type === 'album' && listStore.img}>
         <img src={generateImageUrl(listStore.img, '720')} alt={listStore.name} class="list-thumbnail" />
       </Show>
 

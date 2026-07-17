@@ -53,22 +53,43 @@ export default function ImportYoutubePlaylistModal(props: ImportYoutubePlaylistM
     <Modal
       open={props.open}
       title={t('library_import_youtube_playlist')}
+      class="library-playlist-modal-panel"
       onClose={closeModal}
     >
       <form class="library-playlist-modal" onSubmit={handleSubmit}>
-        <Input
-          autofocus
-          label={t('library_youtube_playlist_url')}
-          helperText={t('library_youtube_playlist_helper')}
-          name="youtube-playlist-url"
-          placeholder="https://www.youtube.com/playlist?list=..."
-          value={url()}
-          onInput={event => setUrl(event.currentTarget.value)}
-        />
+        <div class="library-playlist-modal__intro">
+          <span class="library-playlist-modal__intro-icon" aria-hidden="true">
+            <i class="ri-music-2-line"></i>
+          </span>
+          <div>
+            <p>{t('library_youtube_playlist_modal_intro_title')}</p>
+            <span>{t('library_youtube_playlist_modal_intro')}</span>
+          </div>
+        </div>
+
+        <div class="library-playlist-modal__field">
+          <Input
+            autofocus
+            label={t('library_youtube_playlist_url')}
+            helperText={t('library_youtube_playlist_helper')}
+            name="youtube-playlist-url"
+            placeholder="https://www.youtube.com/playlist?list=..."
+            value={url()}
+            onInput={event => {
+              setUrl(event.currentTarget.value);
+              if (error()) setError('');
+            }}
+          />
+        </div>
 
         <Show when={error()}>
           <p class="library-playlist-modal__error">{error()}</p>
         </Show>
+
+        <div class="library-playlist-modal__note">
+          <i class="ri-information-line" aria-hidden="true"></i>
+          <span>{t('library_youtube_playlist_modal_note')}</span>
+        </div>
 
         <div class="library-playlist-modal__actions">
           <Button

@@ -1,6 +1,7 @@
 import { StreamHttpError, StreamTimeoutError } from '@core/streaming';
 
 type FetchStreamJsonOptions = {
+  headers?: HeadersInit;
   signal?: AbortSignal;
   timeoutMs: number;
 };
@@ -31,10 +32,12 @@ export async function fetchStreamJson(
   options: FetchStreamJsonOptions
 ): Promise<unknown> {
   const timeout = createTimeoutSignal(options.timeoutMs, options.signal);
+  const headers = new Headers(options.headers);
+  headers.set('Accept', 'application/json');
 
   try {
     const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers,
       signal: timeout.signal
     });
 

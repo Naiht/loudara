@@ -163,6 +163,7 @@ export async function getList(
         list: (listData.items || []).map(v => ({
           ...v,
           author: (data.type === 'album' && !v.author.endsWith(' - Topic')) ? `${v.author} - Topic` : v.author,
+          img: data.type === 'album' ? (v.img || listData.img) : v.img,
           context: { src: listType as Context, id: displayName }
         }) as YTItem)
       });

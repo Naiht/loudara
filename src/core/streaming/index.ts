@@ -7,5 +7,5 @@ export {
   StreamTimeoutError,
   StreamUnavailableError
 } from './errors';
-export { normalizeAudioStream, normalizeStreamData } from './normalizeStreamData';
+export { normalizeStreamData } from './normalizeStreamData';
 export { selectPlayableAudioStreams } from './selectAudioStreams';

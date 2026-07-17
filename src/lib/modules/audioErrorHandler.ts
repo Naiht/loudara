@@ -36,8 +36,15 @@ export default function(
 
   if (isFallback) {
     if (!playerStore.isWatching && !prefetch) {
-      setStore('snackbar', 'Error 403 : Unauthenticated Stream');
-      setPlayerStore('playbackState', 'none');
+      const message = 'No fue posible cargar el audio. Puedes intentar recargar la cancion.';
+      setStore('snackbar', {
+        message,
+        type: 'error'
+      });
+      setPlayerStore({
+        playbackState: 'none',
+        status: message
+      });
     }
     streamCache.remove(id);
     return;
@@ -45,11 +52,15 @@ export default function(
 
   if (!proxy || isAlreadyProxy) {
     if (!prefetch) {
+      const message = 'No fue posible cargar el audio. Puedes intentar recargar la cancion.';
       setPlayerStore({
         playbackState: 'none',
-        status: 'Streaming Failed EA'
+        status: message
       });
-      setStore('snackbar', 'Streaming Failed EA');
+      setStore('snackbar', {
+        message,
+        type: 'error'
+      });
       console.log(audio.src);
     }
     streamCache.remove(id);
@@ -63,9 +74,14 @@ export default function(
     audio.dataset.retried = 'true';
     audio.src = newSrc;
   } else if (!prefetch) {
+    const message = 'No fue posible cargar el audio. Puedes intentar recargar la cancion.';
     setPlayerStore({
       playbackState: 'none',
-      status: 'Streaming Failed EB'
+      status: message
+    });
+    setStore('snackbar', {
+      message,
+      type: 'error'
     });
     streamCache.remove(id);
   }

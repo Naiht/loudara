@@ -1,5 +1,5 @@
 import { YTNodes } from 'youtubei.js';
-import { getClient, getThumbnail, formatDuration, getThumbnailId, getVideoId } from './utils.js';
+import { getClient, getThumbnail, formatDuration, getVideoId } from './utils.js';
 
 export default async function(id: string) {
   const yt = await getClient();
@@ -89,6 +89,8 @@ export default async function(id: string) {
   }
 
   let finalItems: any[] = [];
+  const thumbnailUrl = getThumbnail(thumbnails);
+  const albumImage = thumbnailUrl.startsWith('//') ? `https:${thumbnailUrl}` : thumbnailUrl;
 
   if (playlistId) {
     try {
@@ -110,6 +112,7 @@ export default async function(id: string) {
               authorId: itemAuthorId,
               duration: formatDuration(musicItem.duration?.text),
               albumId: id,
+              img: albumImage,
               type: 'song' as const,
               subtext: name
             };
@@ -140,6 +143,7 @@ export default async function(id: string) {
           authorId: itemAuthorId,
           duration: formatDuration(musicItem.duration?.text),
           albumId: id,
+          img: albumImage,
           type: 'song' as const,
           subtext: name
         };
@@ -153,7 +157,7 @@ export default async function(id: string) {
     name,
     author,
     year,
-    img: '/' + getThumbnailId(getThumbnail(thumbnails)),
+    img: albumImage,
     items: finalItems,
     type: 'album' as const
   };

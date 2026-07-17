@@ -1,7 +1,7 @@
 import { createEffect, createSignal, lazy, onCleanup, onMount, Show } from "solid-js"
 import './Player.css'
 import { MediaDetails } from "@components/MediaPartials";
-import { config, cssVar } from "@utils";
+import { config, cssVar, player, streamCache } from "@utils";
 import { closeFeature, playerStore, setNavStore, setStore, t, updateParam } from "@stores";
 
 const MediaArtwork = lazy(() => import('../../components/MediaPartials/MediaArtwork'));
@@ -43,6 +43,25 @@ export default function() {
     return id;
   }
 
+  function canReloadStream() {
+    return Boolean(
+      playerStore.stream.id &&
+      playerStore.status &&
+      playerStore.playbackState === 'none'
+    );
+  }
+
+  function reloadStream() {
+    const id = playerStore.stream.id;
+    if (!id) return;
+
+    streamCache.remove(id);
+    playerStore.audio.pause();
+    playerStore.audio.removeAttribute('src');
+    playerStore.audio.load();
+    player(id);
+  }
+
 
   return (
     <section
@@ -64,6 +83,12 @@ export default function() {
         </p>
 
         <div class="right-group">
+          <Show when={playerStore.stream.id}>
+            <i
+              aria-label={t('player_reload')}
+              onclick={reloadStream}
+              class="ri-refresh-line"></i>
+          </Show>
 
           <i
             aria-label={t('close')}
@@ -98,11 +123,27 @@ export default function() {
         </Show>
 
         <Show when={(!playerStore.isWatching || playerStore.isMusic) && config.loadImage && !showLyrics()}>
-          <MediaArtwork />
+          <div class="playerArtworkFrame">
+            <MediaArtwork />
+          </div>
         </Show>
 
 
         <MediaDetails />
+
+        <Show when={canReloadStream()}>
+          <div class="playerReload">
+            <p>{playerStore.status}</p>
+            <button
+              type="button"
+              class="playerReload__button"
+              onClick={reloadStream}
+            >
+              <i class="ri-refresh-line" aria-hidden="true"></i>
+              Reintentar cancion
+            </button>
+          </div>
+        </Show>
 
         <Show when={!playerStore.isWatching || playerStore.isMusic}>
           <Controls showLyrics={showLyrics} setShowLyrics={setShowLyrics} />

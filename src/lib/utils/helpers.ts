@@ -1,6 +1,6 @@
 import { setStore, playerStore, setPlayerStore, t } from "@stores";
 import { config, player } from "@utils";
-import type { StreamData } from "@core/streaming";
+import type { AudioStream, StreamData } from "@core/streaming";
 
 export const idFromURL = (link: string | null) => link?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)([_0-9a-z-]+)/i)?.[7];
 export function playlistIdFromURL(link: string | null) {

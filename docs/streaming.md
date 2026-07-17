@@ -49,12 +49,11 @@ Goals of this route:
 
 ## Provider Order
 
-The web provider currently tries:
+The web provider currently uses:
 
-1. `ApiStreamProvider`, which calls `/api/stream/:videoId`;
-2. `InvidiousStreamProvider`, a temporary client-side compatibility fallback.
+1. `ApiStreamProvider`, which calls `/api/stream/:videoId`.
 
-The Invidious fallback is development/transition support, not the final recommended production shape.
+Client-side Invidious fallback has been disabled. Provider resolution belongs behind the internal API route so the UI does not hang on public instances or expose provider details.
 
 ## Error Model
 
@@ -76,6 +75,10 @@ When all providers fail, `StreamUnavailableError` carries all attempts so the UI
 - `GET /s/:videoId`: redirects to `/?s=:videoId` instead of returning a dead 404 route.
 
 If all public providers fail locally, `/api/stream/:videoId` returns `502` with an `attempts` array. That is expected until a more reliable local/server provider is configured.
+
+When YouTube returns `Sign in to confirm you're not a bot`, the backend reports the attempt as `youtubei:bot-challenge` and stops the outer retry loop. Repeating an attestation failure from the same session and IP does not make it transient and can increase unnecessary traffic.
+
+The resolver can use a private authenticated or attested session through `YOUTUBE_COOKIE`, `YOUTUBE_VISITOR_DATA`, and `YOUTUBE_PO_TOKEN`. With a cookie or Proof-of-Origin token configured, the `WEB` client is attempted first, followed by the existing mobile/TV fallbacks. See `docs/environment.md` for configuration.
 
 ## Secrets
 

@@ -149,7 +149,7 @@ export default function(_: {
         </Show>
 
         <label class="volumeControl" aria-label="Volumen">
-          <i class="ri-music-2-line" aria-hidden="true"></i>
+          <i class="ri-volume-down-line" aria-hidden="true"></i>
           <input
             id="volumeChanger"
             type="range"

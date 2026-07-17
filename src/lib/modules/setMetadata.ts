@@ -1,6 +1,13 @@
 import { playerStore, setPlayerStore } from "@stores";
 import { config, generateImageUrl } from "@utils";
 
+function getArtworkUrl(data: TrackItem, music: boolean) {
+  if (data.img?.startsWith('/')) {
+    return generateImageUrl(data.img, '720', music);
+  }
+
+  return generateImageUrl(data.img || data.id, 'maxres', music);
+}
 
 export default async function(data: TrackItem) {
 
@@ -23,7 +30,7 @@ export default async function(data: TrackItem) {
     album: playerStore.context.src
   };
 
-  const img = generateImageUrl(data.id, 'maxres', music);
+  const img = getArtworkUrl(data, music);
   if (config.loadImage) {
 
     setPlayerStore('mediaArtwork', img);

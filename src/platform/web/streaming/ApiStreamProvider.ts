@@ -1,6 +1,7 @@
 import type { StreamProvider } from '@core/streaming';
 import { normalizeStreamData, type StreamData } from '@core/streaming';
 import { fetchStreamJson } from './fetchStreamJson';
+import { getYoutubeSessionHeaders } from '../streamingCredentials';
 
 type ApiStreamProviderOptions = {
   baseUrl?: string;
@@ -17,9 +18,10 @@ export class ApiStreamProvider implements StreamProvider {
   }
 
   async getStreamData(videoId: string, signal?: AbortSignal): Promise<StreamData> {
+    const headers = await getYoutubeSessionHeaders();
     const data = await fetchStreamJson(
       `${this.baseUrl.replace(/\/$/, '')}/stream/${encodeURIComponent(videoId)}`,
-      { signal, timeoutMs: this.timeoutMs }
+      { headers, signal, timeoutMs: this.timeoutMs }
     );
 
     return normalizeStreamData(videoId, data, 'api');

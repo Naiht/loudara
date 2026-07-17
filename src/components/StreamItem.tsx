@@ -44,11 +44,16 @@ export default function(data: YTItem & {
 
     const src = getImage();
 
-    setImage(
-      src.includes('vi_webp') ?
-        src.replace('.webp', '.jpg').replace('vi_webp', 'vi') :
-        '/logo192.png'
-    );
+    if (isAlbum && listStore.img) {
+      const albumCover = generateImageUrl(listStore.img, '');
+      setImage(src === albumCover ? '' : albumCover);
+    } else {
+      setImage(
+        src.includes('vi_webp') ?
+          src.replace('.webp', '.jpg').replace('vi_webp', 'vi') :
+          ''
+      );
+    }
 
     parent.classList.remove('ravel');
   }
@@ -58,9 +63,10 @@ export default function(data: YTItem & {
   const isAlbum = data.context?.id.startsWith('MPREb') || listStore.type === 'album';
   const isFromArtist = data.context?.id?.startsWith('Artist - ');
   const isMusic = data.author?.endsWith('- Topic');
+  const imageSource = () => isAlbum ? (listStore.img || data.img || data.id) : (data.img || data.id);
 
-  if (config.loadImage && !isAlbum)
-    setImage(generateImageUrl(data.img || data.id, 'mq', data.context?.id === 'favorites' || isFromArtist || ((data.context?.src === 'queue') && isMusic)));
+  if (config.loadImage)
+    setImage(generateImageUrl(imageSource(), isAlbum ? '' : 'mq', data.context?.id === 'favorites' || isFromArtist || ((data.context?.src === 'queue') && isMusic)));
 
   function openActionsMenu(trigger: HTMLElement) {
     const rect = trigger.getBoundingClientRect();
@@ -70,6 +76,7 @@ export default function(data: YTItem & {
       author: data.author,
       duration: data.duration,
       authorId: data.authorId,
+      img: data.img,
       context: data.context,
       albumId: data.albumId,
       menuPosition: {
@@ -102,7 +109,7 @@ export default function(data: YTItem & {
     <a
       class='streamItem card card--interactive'
       classList={{
-        'ravel': config.loadImage && !isAlbum,
+        'ravel': config.loadImage,
         'marked': data.mark?.get(data.id),
         'delete': data.removeMode
       }}
@@ -148,6 +155,7 @@ export default function(data: YTItem & {
           author: data.author || '',
           duration: data.duration,
           authorId: data.authorId || '',
+          img: data.img,
         });
 
         if (data.albumId)
@@ -164,7 +172,7 @@ export default function(data: YTItem & {
 
         const isPortrait = matchMedia('(orientation:portrait)').matches;
 
-        if (isPortrait || config.landscapeSections === '1') {
+        if (isPortrait) {
           setNavStore('player', 'state', Boolean(config.watchMode));
 
           if (config.watchMode)
@@ -214,7 +222,7 @@ export default function(data: YTItem & {
       }}
     >
       <span>
-        <Show when={!isAlbum && config.loadImage} fallback={data.duration}>
+        <Show when={config.loadImage && getImage()} fallback={<i class="ri-music-2-line" aria-hidden="true"></i>}>
           <img
             onerror={handleThumbnailError}
             onload={handleThumbnailLoad}
@@ -231,7 +239,7 @@ export default function(data: YTItem & {
           </Show>
         </div>
       </div>
-      <Show when={!isAlbum && data.duration}>
+      <Show when={data.duration}>
         <p class="streamItem__duration">{data.duration}</p>
       </Show>
       <Show when={data.draggable}>

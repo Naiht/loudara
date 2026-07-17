@@ -20,6 +20,7 @@ declare global {
     duration: string;
     author: string;
     authorId: string;
+    img?: string;
     modified?: number;
     context?: {
       src: Context;
@@ -99,34 +100,6 @@ declare global {
     [index: string]: number
   }
 
-  type AudioStream = {
-    type: string,
-    bitrate: string,
-    encoding: string,
-    clen: string,
-    url: string,
-    resolution: string,
-    quality: string
-  }
-
-  type Invidious = {
-    adaptiveFormats: AudioStream[],
-    recommendedVideos: {
-      title: string,
-      author: string,
-      lengthSeconds: number,
-      authorUrl: string,
-      videoId: string,
-      authorId: string
-    }[],
-    title: string,
-    captions: Record<'url' | 'label' | 'language_code', string>[],
-    author: string,
-    lengthSeconds: number,
-    authorId: string,
-    liveNow: boolean,
-    proxy?: string
-  }
 }
 
 export { };

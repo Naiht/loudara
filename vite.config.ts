@@ -1,4 +1,4 @@
-import { defineConfig, PluginOption } from 'vite';
+import { defineConfig, loadEnv, PluginOption } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import solidPlugin from 'vite-plugin-solid';
 import autoprefixer from 'autoprefixer';
@@ -9,8 +9,16 @@ import { readdirSync } from 'fs';
 import path from 'path';
 
 
-export default defineConfig(({ command }) => ({
-  base: process.env.VITE_BASE_PATH || '/',
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const backendEnv = {
+    YOUTUBE_COOKIE: env.YOUTUBE_COOKIE,
+    YOUTUBE_PO_TOKEN: env.YOUTUBE_PO_TOKEN,
+    YOUTUBE_VISITOR_DATA: env.YOUTUBE_VISITOR_DATA
+  };
+
+  return {
+  base: env.VITE_BASE_PATH || '/',
   define: {
     Locales: readdirSync(resolve(__dirname, './src/locales')).map(file => file.slice(0, 2)),
     Build: JSON.stringify('v' + require('./package.json').version),
@@ -31,7 +39,7 @@ export default defineConfig(({ command }) => ({
   plugins: [
     solidPlugin(),
     injectEruda(command === 'serve'),
-    apiMiddleware(command === 'serve'),
+    apiMiddleware(command === 'serve', backendEnv),
     VitePWA({
       manifest: {
         "short_name": "Loudara",
@@ -124,7 +132,8 @@ export default defineConfig(({ command }) => ({
       ]
     }
   }
-}));
+  };
+});
 
 
 const injectEruda = (serve: boolean) => serve ? (<PluginOption>{
@@ -148,7 +157,10 @@ const injectEruda = (serve: boolean) => serve ? (<PluginOption>{
   })
 }) : [];
 
-const apiMiddleware = (serve: boolean): PluginOption => serve ? {
+const apiMiddleware = (
+  serve: boolean,
+  backendEnv: Record<string, string | undefined>
+): PluginOption => serve ? {
   name: 'api-middleware',
   configureServer(server) {
     const endpoints = ['album', 'artist', 'channel', 'gallery', 'playlist', 'search', 'search-suggestions', 'similar', 'subfeed', 'trending'];
@@ -166,7 +178,7 @@ const apiMiddleware = (serve: boolean): PluginOption => serve ? {
       
       if (endpoints.includes(path) || req.url?.startsWith('/api/')) {
         const { createLocalAdapter } = await server.ssrLoadModule('./src/backend/localAdapter.ts');
-        const adapter = createLocalAdapter();
+        const adapter = createLocalAdapter(backendEnv);
         return adapter(req, res);
       } else {
         next();

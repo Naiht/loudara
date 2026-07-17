@@ -5,23 +5,12 @@ import {
   type StreamProvider
 } from '@core/streaming';
 import { ApiStreamProvider } from './ApiStreamProvider';
-import { InvidiousStreamProvider } from './InvidiousStreamProvider';
-
-type WebStreamProviderOptions = {
-  preferredProxy?: string;
-};
 
 class WebStreamProvider implements StreamProvider {
   private readonly providers: StreamProvider[];
 
-  constructor(options: WebStreamProviderOptions = {}) {
+  constructor() {
     this.providers = [new ApiStreamProvider()];
-
-    if (import.meta.env.DEV) {
-      this.providers.push(
-        new InvidiousStreamProvider({ preferredInstance: options.preferredProxy })
-      );
-    }
   }
 
   async getStreamData(videoId: string, signal?: AbortSignal): Promise<StreamData> {
@@ -49,10 +38,8 @@ class WebStreamProvider implements StreamProvider {
   }
 }
 
-export function createWebStreamProvider(options: WebStreamProviderOptions = {}): StreamProvider {
-  return new WebStreamProvider(options);
+export function createWebStreamProvider(): StreamProvider {
+  return new WebStreamProvider();
 }
 
 export { ApiStreamProvider } from './ApiStreamProvider';
-export { InvidiousStreamProvider } from './InvidiousStreamProvider';
-export { getInvidiousInstances } from './instances';

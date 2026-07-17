@@ -4,6 +4,12 @@ import { createStore } from "solid-js/store";
 const nl = navigator.language.slice(0, 2);
 const initLocale = config.language || (Locales.includes(nl) ? nl : 'en');
 
+export type SnackbarType = 'success' | 'error' | 'warning' | 'info';
+export type SnackbarMessage = string | {
+  message: string;
+  type?: SnackbarType;
+};
+
 const storeInit: {
   useSaavn: boolean,
   api: string,
@@ -15,7 +21,7 @@ const storeInit: {
       y: number
     }
   },
-  snackbar?: string,
+  snackbar?: SnackbarMessage,
   syncState?: SyncState,
   locale: string,
   translations: Record<TranslationKeys, string> | {}

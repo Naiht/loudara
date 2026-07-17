@@ -9,7 +9,7 @@ import getSimilar from './getSimilar.js';
 import getSubFeed from './getSubFeed.js';
 import getTrending from './getTrending.js';
 import { getStream } from './getStream.js';
-import { getYoutubeMedia } from './getYoutubeStream.js';
+import { getYoutubeMedia, type YoutubeSessionConfig } from './getYoutubeStream.js';
 import type { Request, ExecutionContext } from '@cloudflare/workers-types';
 
 const ALLOWED_ORIGINS = [
@@ -23,6 +23,17 @@ export interface Env {
   ASSETS?: {
     fetch: (input: Request | string | URL, init?: RequestInit) => Promise<Response>;
   };
+  YOUTUBE_COOKIE?: string;
+  YOUTUBE_PO_TOKEN?: string;
+  YOUTUBE_VISITOR_DATA?: string;
+}
+
+function getYoutubeSession(env: Env, request: Request): YoutubeSessionConfig {
+  return {
+    cookie: request.headers.get('X-Loudara-Youtube-Cookie') || env.YOUTUBE_COOKIE,
+    poToken: request.headers.get('X-Loudara-Youtube-Po-Token') || env.YOUTUBE_PO_TOKEN,
+    visitorData: request.headers.get('X-Loudara-Youtube-Visitor-Data') || env.YOUTUBE_VISITOR_DATA
+  };
 }
 
 export default {
@@ -35,11 +46,18 @@ export default {
     const origin = request.headers.get('Origin');
     const allowedOrigin = (origin && ALLOWED_ORIGINS.includes(origin)) ? origin : 'https://loudara.app';
     const pathname = url.pathname;
+    const youtubeSession = getYoutubeSession(env, request);
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': [
+        'Accept',
+        'Content-Type',
+        'X-Loudara-Youtube-Cookie',
+        'X-Loudara-Youtube-Po-Token',
+        'X-Loudara-Youtube-Visitor-Data'
+      ].join(', '),
       'Access-Control-Max-Age': '86400',
       'Vary': 'Origin'
     };
@@ -142,14 +160,14 @@ export default {
               });
             }
 
-            const response = await getYoutubeMedia(id, itag, request);
+            const response = await getYoutubeMedia(id, itag, request, youtubeSession);
             Object.entries(corsHeaders).forEach(([key, value]) => response.headers.set(key, value));
             return response;
           }
 
           if (path.startsWith('stream/')) {
             const id = path.slice('stream/'.length);
-            const result = await getStream(id);
+            const result = await getStream(id, youtubeSession);
             if (!result.data) {
               return new Response(JSON.stringify({
                 error: 'stream_unavailable',

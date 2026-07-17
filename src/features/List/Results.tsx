@@ -77,7 +77,6 @@ export default function Results(_: {
     >
       <div
         class="listContainer"
-        classList={{ 'listContainer--single-column': listStore.type === 'channels' }}
       >
         <Show when={_.draggable} fallback={
           <For each={items()}>{

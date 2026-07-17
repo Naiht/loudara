@@ -10,7 +10,6 @@ export let config = {
   searchSuggestions: true,
   saveRecentSearches: true,
   loadImage: true,
-  landscapeSections: '2',
   roundness: '0.4rem',
   theme: 'auto' as 'auto' | 'light' | 'dark',
   persistentShuffle: false,

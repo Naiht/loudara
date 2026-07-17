@@ -73,7 +73,7 @@ export default function() {
     >
       <div class="actions-menu__track">
         <Show when={config.loadImage && store.actionsMenu?.id}>
-          <img src={generateImageUrl(store.actionsMenu?.id || '', 'mq', isMusic)} alt="" />
+          <img src={generateImageUrl(store.actionsMenu?.img || store.actionsMenu?.id || '', 'mq', isMusic)} alt="" />
         </Show>
         <span>
           <strong>{store.actionsMenu?.title || ''}</strong>
@@ -124,13 +124,13 @@ export default function() {
         </li>
 
         <li tabindex="3" onclick={async () => {
-          const id = store.actionsMenu?.id;
+          const seed = store.actionsMenu;
           const currentTitle = store.actionsMenu?.title;
-          if (!id) return;
+          if (!seed?.id) return;
 
           setQueueStore('isLoading', true);
           import('@modules/getRadio')
-            .then(mod => mod.default(id))
+            .then(mod => mod.default(seed))
             .then(data => {
               setQueueStore('list', []);
               addToQueue(data.map(item => ({

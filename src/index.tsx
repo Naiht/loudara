@@ -5,6 +5,7 @@ import { Portal, render } from 'solid-js/web';
 import { themer, syncLibrary } from '@utils';
 import { updateLang, setStore, store, navStore } from '@stores';
 import { requestRequiredPermissions } from '@platform/native';
+import { initNavigationHistory, useNavigationHistory } from '@modules/navigationHistory';
 import AppShell from './layouts/AppShell';
 import './styles/global.css';
 import 'remixicon/fonts/remixicon.css';
@@ -23,9 +24,12 @@ const SnackBar = lazy(() => import('@components/SnackBar'));
 
 export default function App() {
 
+  useNavigationHistory();
+
   onMount(async () => {
     await requestRequiredPermissions();
     await import('@modules/start.ts').then(mod => mod.default());
+    initNavigationHistory();
 
     setStore('syncState', 'synced');
     syncLibrary('init');

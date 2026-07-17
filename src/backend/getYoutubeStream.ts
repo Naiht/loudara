@@ -1,6 +1,30 @@
 import { Innertube, UniversalCache } from 'youtubei.js';
 import type { StreamData } from '../core/streaming/types.js';
 
+export type YoutubeSessionConfig = {
+  cookie?: string;
+  visitorData?: string;
+  poToken?: string;
+};
+
+export class YoutubeBotChallengeError extends Error {
+  readonly code = 'youtube_bot_challenge';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'YoutubeBotChallengeError';
+  }
+}
+
+export class YoutubeSessionConfigurationError extends Error {
+  readonly code = 'youtube_session_configuration';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'YoutubeSessionConfigurationError';
+  }
+}
+
 type YoutubeFormat = {
   url?: string;
   mime_type?: string;
@@ -46,24 +70,93 @@ type CachedMedia = {
   url: string;
 };
 
-const CLIENTS = ['ANDROID', 'IOS', 'TV'] as const;
+const ANONYMOUS_CLIENTS = ['ANDROID', 'IOS', 'TV'] as const;
+const SESSION_CLIENTS = ['WEB'] as const;
 const INITIAL_DOWNLOAD_CHUNK_SIZE = 1024 * 1024;
 const FOLLOWUP_DOWNLOAD_CHUNK_SIZE = 16 * 1024;
 const MAX_CACHED_AUDIO_BYTES = 32 * 1024 * 1024;
 const MAX_CACHED_AUDIO_FILES = 1;
 const MEDIA_CACHE_TTL_MS = 10 * 60 * 1000;
+const VIDEO_SESSION_TTL_MS = 30 * 60 * 1000;
 
 let innertubePromise: Promise<Innertube> | undefined;
+let innertubeSessionKey = '';
 const mediaUrlCache = new Map<string, CachedMedia>();
+const videoSessionCache = new Map<string, {
+  expiresAt: number;
+  session: YoutubeSessionConfig;
+}>();
 
-function getInnertube(): Promise<Innertube> {
+function cleanSessionConfig(config: YoutubeSessionConfig): YoutubeSessionConfig {
+  return {
+    cookie: config.cookie?.trim() || undefined,
+    visitorData: config.visitorData?.trim() || undefined,
+    poToken: config.poToken?.trim() || undefined
+  };
+}
+
+function getSessionKey(config: YoutubeSessionConfig): string {
+  return [config.cookie || '', config.visitorData || '', config.poToken || ''].join('\u0000');
+}
+
+function hasSessionCredentials(config: YoutubeSessionConfig): boolean {
+  return Boolean(config.cookie || config.visitorData || config.poToken);
+}
+
+function rememberVideoSession(videoId: string, session: YoutubeSessionConfig) {
+  if (!hasSessionCredentials(session)) return;
+  videoSessionCache.set(videoId, {
+    expiresAt: Date.now() + VIDEO_SESSION_TTL_MS,
+    session
+  });
+}
+
+function getVideoSession(videoId: string): YoutubeSessionConfig {
+  const cached = videoSessionCache.get(videoId);
+  if (!cached) return {};
+  if (cached.expiresAt > Date.now()) return cached.session;
+  videoSessionCache.delete(videoId);
+  return {};
+}
+
+function getInnertube(sessionConfig: YoutubeSessionConfig = {}): Promise<Innertube> {
+  const config = cleanSessionConfig(sessionConfig);
+  if (config.poToken && !config.visitorData) {
+    throw new YoutubeSessionConfigurationError(
+      'YOUTUBE_PO_TOKEN requires the matching YOUTUBE_VISITOR_DATA value'
+    );
+  }
+
+  const sessionKey = getSessionKey(config);
+  if (innertubeSessionKey !== sessionKey) {
+    innertubePromise = undefined;
+    innertubeSessionKey = sessionKey;
+  }
+
   innertubePromise ||= Innertube.create({
     cache: new UniversalCache(false),
+    cookie: config.cookie,
     generate_session_locally: true,
+    po_token: config.poToken,
     retrieve_player: true,
+    visitor_data: config.visitorData,
     fetch: fetch.bind(globalThis)
   });
   return innertubePromise;
+}
+
+export function resetYoutubeSession() {
+  innertubePromise = undefined;
+}
+
+export function isYoutubeBotChallenge(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return error instanceof YoutubeBotChallengeError ||
+    /sign in to confirm you(?:'|’)?re not a bot|confirm you are not a bot/i.test(message);
+}
+
+export function isYoutubeSessionConfigurationError(error: unknown): boolean {
+  return error instanceof YoutubeSessionConfigurationError;
 }
 
 function isAudioFormat(format: YoutubeFormat): boolean {
@@ -175,72 +268,91 @@ function toStreamData(
 
 export async function getYoutubeStream(
   videoId: string,
-  options: { proxyMedia?: boolean } = {}
+  options: { proxyMedia?: boolean; session?: YoutubeSessionConfig } = {}
 ): Promise<StreamData> {
-  const innertube = await getInnertube();
+  const session = cleanSessionConfig(options.session || {});
+  const innertube = await getInnertube(session);
   const errors: string[] = [];
   const proxyMedia = options.proxyMedia ?? true;
+  const clients = session.cookie || session.poToken ? SESSION_CLIENTS : ANONYMOUS_CLIENTS;
 
-  for (const client of CLIENTS) {
+  for (const client of clients) {
     try {
       let info: YoutubeInfo;
 
       try {
         info = await innertube.getBasicInfo(videoId, { client }) as YoutubeInfo;
-      } catch {
+      } catch (error) {
+        if (isYoutubeBotChallenge(error)) throw error;
         info = await innertube.getInfo(videoId, { client }) as YoutubeInfo;
       }
 
-      return toStreamData(videoId, info, client, { proxyMedia });
+      const data = toStreamData(videoId, info, client, { proxyMedia });
+      rememberVideoSession(videoId, session);
+      return data;
     } catch (error) {
       errors.push(`${client}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  throw new Error(errors.join(' | ') || 'YouTube.js did not return audio streams');
+  const message = errors.join(' | ') || 'YouTube.js did not return audio streams';
+  if (errors.some(error => isYoutubeBotChallenge(error))) {
+    throw new YoutubeBotChallengeError(message);
+  }
+  throw new Error(message);
 }
 
 export async function getYoutubeMedia(
   videoId: string,
   itag: number,
-  request: MediaRequest
+  request: MediaRequest,
+  session: YoutubeSessionConfig = {}
 ): Promise<Response> {
+  const configuredSession = cleanSessionConfig(session);
+  const activeSession = hasSessionCredentials(configuredSession)
+    ? configuredSession
+    : getVideoSession(videoId);
   let response: Response;
 
   try {
-    response = await fetchYoutubeMedia(videoId, itag, request);
-  } catch {
+    response = await fetchYoutubeMedia(videoId, itag, request, activeSession);
+  } catch (error) {
+    if (isYoutubeBotChallenge(error) || isYoutubeSessionConfigurationError(error)) throw error;
     clearCachedMedia(videoId, itag);
-    response = await fetchYoutubeMedia(videoId, itag, request, { forceRefresh: true });
+    resetYoutubeSession();
+    response = await fetchYoutubeMedia(videoId, itag, request, activeSession, { forceRefresh: true });
   }
 
   if (!isRejectedMediaStatus(response.status)) return response;
 
   clearCachedMedia(videoId, itag);
+  resetYoutubeSession();
   let retry: Response;
   try {
-    retry = await fetchYoutubeMedia(videoId, itag, request, { forceRefresh: true });
-  } catch {
-    const media = await resolveMedia(videoId, itag, true);
+    retry = await fetchYoutubeMedia(videoId, itag, request, activeSession, { forceRefresh: true });
+  } catch (error) {
+    if (isYoutubeBotChallenge(error) || isYoutubeSessionConfigurationError(error)) throw error;
+    const media = await resolveMedia(videoId, itag, activeSession, true);
     retry = media
       ? await fetchResolvedMedia(media, request)
       : response;
   }
   if (!isRejectedMediaStatus(retry.status)) return retry;
 
-  const fallback = await fetchFallbackMedia(videoId, itag, request);
+  const fallback = await fetchFallbackMedia(videoId, itag, request, activeSession);
   return fallback || retry;
 }
 
 async function resolveMedia(
   videoId: string,
   itag: number,
+  session: YoutubeSessionConfig,
   forceRefresh = false
 ) {
   const cached = forceRefresh ? undefined : getCachedMedia(videoId, itag);
   if (cached) return cached;
 
-  const data = await getYoutubeStream(videoId, { proxyMedia: false });
+  const data = await getYoutubeStream(videoId, { proxyMedia: false, session });
   const stream = data.streams.find(candidate => candidate.itag === itag);
   if (!stream) return undefined;
 
@@ -258,9 +370,10 @@ async function fetchYoutubeMedia(
   videoId: string,
   itag: number,
   request: MediaRequest,
+  session: YoutubeSessionConfig,
   options: { forceRefresh?: boolean } = {}
 ): Promise<Response> {
-  const media = await resolveMedia(videoId, itag, options.forceRefresh);
+  const media = await resolveMedia(videoId, itag, session, options.forceRefresh);
   if (!media) {
     return new Response(JSON.stringify({ error: 'media_stream_not_found' }), {
       status: 404,
@@ -275,9 +388,10 @@ async function fetchYoutubeMedia(
 async function fetchFallbackMedia(
   videoId: string,
   rejectedItag: number,
-  request: MediaRequest
+  request: MediaRequest,
+  session: YoutubeSessionConfig
 ): Promise<Response | undefined> {
-  const data = await getYoutubeStream(videoId, { proxyMedia: false });
+  const data = await getYoutubeStream(videoId, { proxyMedia: false, session });
   const alternatives = data.streams.filter(stream => stream.itag && stream.itag !== rejectedItag);
 
   for (const stream of alternatives) {

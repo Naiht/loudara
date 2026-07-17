@@ -19,12 +19,8 @@
 .listContainer {
   margin-bottom: var(--size-fluid-6);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.listContainer--single-column {
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
 }
 
 .listSearchInput {
@@ -77,7 +73,14 @@
   }
 }
 
-.list-thumbnail {
+#listSection > .list-thumbnail {
+  display: block;
+  width: clamp(180px, 28vw, 320px);
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  margin: var(--space-4) auto var(--space-5);
   border-radius: var(--roundness);
 }
 
@@ -320,13 +323,6 @@
     }
   }
 }
-
-@media (max-width: 900px) {
-  .listContainer {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 
 .sortBar {
   display: flex;

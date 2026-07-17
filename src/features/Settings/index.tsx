@@ -2,19 +2,77 @@ import { onMount, createEffect, For, createSignal, Show } from "solid-js";
 import './Settings.css';
 import { setNavStore, t, setStore, updateLang } from '@stores';
 import { Selector } from '@components/Selector.tsx';
-import { config, setConfig, drawer, setDrawer, cssVar, themer, quickSwitch, deleteCollection, getCollection } from '@utils';
+import { Button, Input } from '../../ui/components';
+import { platform } from '@platform';
+import { getInvalidYoutubeSessionValueReason } from '@platform/web/streamingCredentials';
+import { config, setConfig, drawer, setDrawer, themer, quickSwitch, deleteCollection, getCollection, streamCache } from '@utils';
 import Dropdown from "./Dropdown";
 
 export default function() {
   let settingsSection!: HTMLDivElement;
   const isPWA = matchMedia('(display-mode: standalone)').matches;
+  const [youtubeCookie, setYoutubeCookie] = createSignal('');
+  const [hasYoutubeSession, setHasYoutubeSession] = createSignal(false);
 
   onMount(() => {
     setNavStore('settings', 'ref', settingsSection);
     settingsSection.scrollIntoView();
+
+    void platform.streamingCredentials.get().then(credentials => {
+      if (!credentials) return;
+      setYoutubeCookie(credentials.cookie);
+      setHasYoutubeSession(Boolean(credentials.cookie));
+    });
   });
 
   createEffect(updateLang);
+
+  async function saveYoutubeSession(event: SubmitEvent) {
+    event.preventDefault();
+    const credentials = {
+      cookie: youtubeCookie().trim(),
+      visitorData: '',
+      poToken: ''
+    };
+
+    if (!credentials.cookie) {
+      setStore('snackbar', {
+        message: t('settings_youtube_session_empty'),
+        type: 'warning'
+      });
+      return;
+    }
+
+    const invalidReason = getInvalidYoutubeSessionValueReason(credentials);
+    if (invalidReason) {
+      setStore('snackbar', {
+        message: t(invalidReason === 'truncated'
+          ? 'settings_youtube_session_truncated'
+          : 'settings_youtube_session_invalid_header'),
+        type: 'error'
+      });
+      return;
+    }
+
+    await platform.streamingCredentials.set(credentials);
+    streamCache.clear();
+    setHasYoutubeSession(true);
+    setStore('snackbar', {
+      message: t('settings_youtube_session_saved'),
+      type: 'success'
+    });
+  }
+
+  async function removeYoutubeSession() {
+    await platform.streamingCredentials.remove();
+    streamCache.clear();
+    setYoutubeCookie('');
+    setHasYoutubeSession(false);
+    setStore('snackbar', {
+      message: t('settings_youtube_session_removed'),
+      type: 'info'
+    });
+  }
 
   const Toggle = (props: { name: string, checked: boolean, onclick: (e: MouseEvent) => void }) => {
     const [checked, setChecked] = createSignal(props.checked);
@@ -113,7 +171,7 @@ export default function() {
           }}
         />
 
-        <Toggle
+        {/*<Toggle
           name='settings_watchmode'
           checked={Boolean(config.watchMode)}
           onclick={() => {
@@ -122,7 +180,7 @@ export default function() {
                 '' : '144p'
             );
           }}
-        />
+        />*/}
 
         {/* Library Settings */}
         <Toggle
@@ -197,21 +255,6 @@ export default function() {
         />
 
         <Selector
-          label='settings_landscape_sections'
-          onchange={(e) => {
-            const { value } = e.target;
-            cssVar('--landscapeSections', value);
-            setConfig('landscapeSections', e.target.value);
-          }}
-          id='sls'
-          value={config.landscapeSections}
-        >
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3" selected>3</option>
-        </Selector>
-
-        <Selector
           label='settings_theming_scheme'
           id='themeSelector'
           onchange={(e) => {
@@ -224,6 +267,50 @@ export default function() {
           <option value="light">{t('settings_theming_scheme_light')}</option>
           <option value="dark">{t('settings_theming_scheme_dark')}</option>
         </Selector>
+
+        <section class="settings-session">
+          <div class="settings-session__heading">
+            <span class="settings-session__icon" aria-hidden="true">
+              <i class="ri-key-2-line"></i>
+            </span>
+            <div>
+              <h2>{t('settings_youtube_session')}</h2>
+              <span
+                class="settings-session__status"
+                classList={{ 'settings-session__status--active': hasYoutubeSession() }}
+              >
+                {t(hasYoutubeSession()
+                  ? 'settings_youtube_session_active'
+                  : 'settings_youtube_session_inactive')}
+              </span>
+            </div>
+          </div>
+
+          <form class="settings-session__form" onsubmit={saveYoutubeSession}>
+            <Input
+              id="youtubeCookie"
+              type="password"
+              autocomplete="off"
+              spellcheck={false}
+              label={t('settings_youtube_cookie')}
+              value={youtubeCookie()}
+              oninput={(event) => setYoutubeCookie(event.currentTarget.value)}
+            />
+
+            <div class="settings-session__actions">
+              <Show when={hasYoutubeSession()}>
+                <Button type="button" variant="secondary" onclick={removeYoutubeSession}>
+                  <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                  {t('settings_youtube_session_remove')}
+                </Button>
+              </Show>
+              <Button type="submit">
+                <i class="ri-save-3-line" aria-hidden="true"></i>
+                {t('settings_youtube_session_save')}
+              </Button>
+            </div>
+          </form>
+        </section>
       </div>
       <br />
       <br />

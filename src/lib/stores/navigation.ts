@@ -40,6 +40,46 @@ export const [navStore, setNavStore] = createStore<Nav & { active: MainFeature }
   settings: { ref: null, component: Settings },
 });
 
+export type NavigationSnapshot = {
+  active: MainFeature,
+  queue: boolean,
+  player: boolean
+};
+
+const mainFeatures: MainFeature[] = ['search', 'library', 'list', 'settings'];
+
+export function getNavigationSnapshot(): NavigationSnapshot {
+  return {
+    active: navStore.active,
+    queue: navStore.queue.state,
+    player: navStore.player.state
+  };
+}
+
+export function isNavigationSnapshot(value: unknown): value is NavigationSnapshot {
+  if (!value || typeof value !== 'object') return false;
+
+  const snapshot = value as NavigationSnapshot;
+  return (
+    mainFeatures.includes(snapshot.active) &&
+    typeof snapshot.queue === 'boolean' &&
+    typeof snapshot.player === 'boolean'
+  );
+}
+
+export function applyNavigationSnapshot(snapshot: NavigationSnapshot) {
+  setNavStore('active', snapshot.active);
+  setNavStore('queue', 'state', snapshot.queue);
+  setNavStore('player', 'state', snapshot.player);
+}
+
+export function mergeNavigationHistoryState(snapshot = getNavigationSnapshot()) {
+  const currentState = history.state && typeof history.state === 'object' ? history.state : {};
+  return {
+    ...currentState,
+    loudaraNav: snapshot
+  };
+}
 
 
 export function closeFeature(name: Feature) {
@@ -72,7 +112,6 @@ export function updateParam(
 
   const str = params.toString();
 
-  history.replaceState({}, '', location.origin + location.pathname + (str && '?') + params.toString());
+  history.replaceState(mergeNavigationHistoryState(), '', location.origin + location.pathname + (str && '?') + params.toString());
 }
-
 

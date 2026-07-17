@@ -1,10 +1,10 @@
 import { Connect } from 'vite';
-import worker from './worker.js';
+import worker, { type Env } from './worker.js';
 
 /**
  * Adapts the Cloudflare Worker fetch handler for use as a Vite middleware.
  */
-export function createLocalAdapter() {
+export function createLocalAdapter(env: Env = {}) {
   return async (req: Connect.IncomingMessage, res: any) => {
     const protocol = (req.socket as any).encrypted ? 'https' : 'http';
     const host = req.headers.host || 'localhost';
@@ -23,7 +23,7 @@ export function createLocalAdapter() {
     try {
       // Call the worker's fetch method
       // @ts-ignore
-      const response = await worker.fetch(request, {}, {});
+      const response = await worker.fetch(request, env, {} as any);
 
       // Copy status and headers to the Node.js response
       res.statusCode = response.status;

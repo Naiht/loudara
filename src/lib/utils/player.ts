@@ -1,5 +1,5 @@
-import { playerStore, setPlayerStore, setStore, store } from "@stores";
-import { config, convertSStoHHMMSS, streamCache } from "@utils";
+import { playerStore, setPlayerStore, setStore } from "@stores";
+import { config, convertSStoHHMMSS } from "@utils";
 import { isQueuePrefetchActive } from "../modules/queuePrefetch";
 import type { StreamData } from "@core/streaming";
 
@@ -21,12 +21,6 @@ export async function player(id?: string) {
       status: 'Loading Audio...'
     });
 
-
-  if (!store.useSaavn)
-    setStore('useSaavn', true);
-  else if (playerStore.stream.author?.endsWith('Topic') && !streamCache.get(id))
-    return import('../modules/jioSaavn').then(mod => mod.default());
-
   const getStreamData = await import('@modules/getStreamData').then(mod => mod.default);
   const data = await getStreamData(id, playerAbortController.signal);
 
@@ -41,7 +35,10 @@ export async function player(id?: string) {
       playbackState: 'none',
       status: errorData.message || errorData.error || 'Loading Audio Failed'
     });
-    setStore('snackbar', playerStore.status);
+    setStore('snackbar', {
+      message: playerStore.status,
+      type: 'error'
+    });
     return;
   }
 
@@ -53,7 +50,8 @@ export async function player(id?: string) {
       title: streamData.title || playerStore.stream.title,
       author: streamData.author || playerStore.stream.author,
       duration: convertSStoHHMMSS(streamData.duration || 0),
-      authorId: streamData.authorId || playerStore.stream.authorId
+      authorId: streamData.authorId || playerStore.stream.authorId,
+      img: playerStore.stream.img
     }));
 
   import('../modules/setAudioStreams')
@@ -77,4 +75,3 @@ export async function player(id?: string) {
       });
 
 }
-

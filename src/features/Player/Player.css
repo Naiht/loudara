@@ -75,19 +75,81 @@
   }
 
 
-  img {
+  .playerArtworkFrame {
+    display: grid;
+    width: min(100%, 460px);
+    aspect-ratio: 1;
     margin: 0 auto;
-    border-radius: var(--roundness);
-    box-shadow: var(--shadow-2);
+    place-items: center;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .playerArtworkFrame > img.mediaArtwork {
     width: 100%;
+    height: 100%;
+    margin: 0;
+    object-fit: cover;
+    object-position: center;
+    border-radius: inherit;
+    box-shadow: none;
+    transform: scale(1);
+    transition: transform var(--transition-fast);
+  }
+
+  .playerArtworkFrame > img.mediaArtwork--wide {
+    transform: scale(1.28);
+  }
+
+  .playerReload {
+    display: grid;
+    gap: var(--size-2);
+    width: min(100%, 460px);
+    margin: 0 auto var(--size-4);
+    padding: var(--size-3);
+    color: var(--color-text-secondary);
+    background: var(--color-surface-01);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .playerReload p {
+    margin: 0;
+    font-size: var(--font-size-0);
+    line-height: 1.35;
+    color: var(--color-text-tertiary);
+  }
+
+  .playerReload__button {
+    display: inline-flex;
+    width: max-content;
+    align-items: center;
+    gap: var(--size-2);
+    padding: var(--size-2) var(--size-3);
+    color: var(--color-text-primary);
+    background: var(--color-primary-600);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-1) !important;
+    font-weight: var(--font-weight-7);
+  }
+
+  .playerReload__button:hover,
+  .playerReload__button:focus-visible {
+    background: var(--color-primary-500);
+  }
+
+  .playerReload__button:active {
+    background: var(--color-primary-700);
   }
 
 
   @media(orientation:landscape) {
     height: 100%;
 
-    img {
-      width: 50dvh;
+    .playerArtworkFrame {
+      width: min(50dvh, 460px);
     }
 
     .lyrics {
@@ -162,6 +224,9 @@
   }
 
   .right-group {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2);
     margin-right: var(--size-4);
     margin-top: 0;
   }

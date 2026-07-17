@@ -108,11 +108,14 @@ footer {
   }
 
   img {
+    width: calc(var(--size-8) + var(--size-2));
     height: calc(var(--size-8) + var(--size-2));
+    flex: 0 0 calc(var(--size-8) + var(--size-2));
     object-fit: cover;
-    border: var(--border);
+    object-position: center;
+    border: 0;
     border-radius: calc(var(--roundness) * 0.7);
-    box-shadow: var(--shadow-1);
+    box-shadow: none;
     pointer-events: none;
   }
 

@@ -157,7 +157,7 @@ main {
     padding-top: 0;
     overflow-y: auto;
     scroll-snap-align: start;
-    min-width: calc(100dvw / var(--landscapeSections));
+    min-width: 50dvw;
     flex-shrink: 0;
   }
 
@@ -171,27 +171,6 @@ main {
     }
 
     section:only-child {
-
-      &:has(>img) {
-        overflow: initial !important;
-
-        .list-thumbnail {
-          display: inline-block;
-          height: calc(100% - var(--size-12));
-          margin: 0;
-          margin-right: var(--gap);
-          vertical-align: middle;
-        }
-
-        .listContainer {
-          height: calc(100% - var(--size-10));
-          width: calc(100% - var(--size-13));
-          display: inline-block;
-          vertical-align: top;
-          margin: 0 !important;
-          overflow-y: auto !important;
-        }
-      }
 
       .searchlist {
         display: grid;
@@ -209,13 +188,13 @@ main {
 
       .listContainer {
         display: grid;
-        grid-template-columns: repeat(8, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: var(--gap) !important;
 
         .streamItem {
           display: inline-flex;
           width: 100%;
-          grid-column: span 4;
+          grid-column: 1 / -1;
           margin: 0;
         }
 
@@ -225,15 +204,10 @@ main {
           margin: 0;
         }
 
-        &.listContainer--single-column {
-          grid-template-columns: minmax(0, 1fr);
-
-          .streamItem,
-          .loadAllBtn {
-            width: 100%;
-            grid-column: 1 / -1;
-            margin: 0;
-          }
+        .loadAllBtn {
+          width: 100%;
+          grid-column: 1 / -1;
+          margin: 0;
         }
       }
     }

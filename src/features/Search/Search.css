@@ -85,14 +85,29 @@
       }
     }
 
+    .searchFiltersWrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin-left: var(--gap);
+      color: inherit;
+
+      >i {
+        position: absolute;
+        right: 0;
+        font-size: 1rem;
+        opacity: 0.65;
+        pointer-events: none;
+      }
+    }
+
     .searchFilters {
       font-size: var(--font-size-0);
       font-weight: var(--font-weight-7);
       letter-spacing: var(--font-letterspacing-1);
       background: none;
       max-width: var(--size-10);
-      margin-left: var(--gap);
-      padding: 0;
+      padding: 0 18px 0 0;
       border: none;
       color: inherit;
       text-align: right;

@@ -25,7 +25,6 @@
   --blur: blur(var(--size-px-3));
   --player-bg: none;
   --player-bp: 0 0;
-  --landscapeSections: 2;
   --trueBg: var(--bg);
   --font: var(--font-family-base);
 }

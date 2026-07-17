@@ -1,8 +1,16 @@
-import { playerStore, setPlayerStore } from '@stores';
+import { setPlayerStore } from '@stores';
 import { streamCache } from '@utils';
 import { StreamUnavailableError, type StreamData } from '@core/streaming';
 import { createWebStreamProvider } from '@platform/web/streaming';
 import { getNativeStreamData, isNativeApp } from '@platform/native';
+
+async function resolveStreamData(id: string, signal?: AbortSignal): Promise<StreamData> {
+  setPlayerStore('status', 'Obteniendo audio...');
+
+  return isNativeApp
+    ? getNativeStreamData(id)
+    : createWebStreamProvider().getStreamData(id, signal);
+}
 
 export default async function(
   id: string,
@@ -11,11 +19,7 @@ export default async function(
   const cached = streamCache.get(id);
 
   try {
-    const data = cached || await (isNativeApp
-      ? getNativeStreamData(id)
-      : createWebStreamProvider({
-        preferredProxy: playerStore.proxy
-      }).getStreamData(id, signal));
+    const data = cached || await resolveStreamData(id, signal);
 
     streamCache.set(id, data);
     setPlayerStore('proxy', data.proxy || '');

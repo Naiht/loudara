@@ -10,6 +10,9 @@ export function generateImageUrl(
   res: string,
   music?: boolean
 ) {
+  if (!id) return '';
+  if (/^https?:\/\//i.test(id)) return id;
+
   let prefix = '';
   if (id.startsWith('/')) {
     prefix = `https://yt3.googleusercontent.com${id}=s${res === 'mq' ? '180' : res || '360'}-c-k-c0x00ffffff-no-rj`;
@@ -123,12 +126,6 @@ export function themer() {
 
 }
 
-if (config.landscapeSections !== '2')
-  cssVar('--landscapeSections', config.landscapeSections);
-
-
-
 systemDark.addEventListener('change', themer);
 
 export { cssVar };
-
