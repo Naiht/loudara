@@ -26,17 +26,35 @@ export default function(data: YTItem & {
   function handleThumbnailLoad(e: Event) {
     const img = e.target as HTMLImageElement;
     const src = getImage();
+    const isGeneratedVideoThumbnail =
+      src.includes('i.ytimg.com/vi/') ||
+      src.includes('i.ytimg.com/vi_webp/') ||
+      src.includes('/vi/') ||
+      src.includes('/vi_webp/');
+
+    if (!isGeneratedVideoThumbnail) {
+      parent.classList.remove('ravel');
+      return;
+    }
 
     if (img.naturalWidth !== 120) {
       parent.classList.remove('ravel');
       return;
     }
-    if (src.includes('webp'))
+
+    if (src.includes('webp')) {
       setImage(src.replace('.webp', '.jpg').replace('vi_webp', 'vi'));
-    else {
-      // most likely been removed from yt so remove it
-      if (data.context?.src)
+      return;
+    }
+
+    setImage('');
+    parent.classList.remove('ravel');
+
+    if (data.context?.src === 'collection' || data.context?.src === 'playlists' || data.context?.src === 'album') {
+      // Most likely this saved entry no longer has a valid YouTube thumbnail.
+      if (data.context?.id) {
         removeFromCollection(data.context?.id, [data.id])
+      }
     }
   }
 

@@ -80,6 +80,11 @@ export function getThumbnail(thumbnails: { url: string, width: number }[]): stri
   return thumbnails.sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || '';
 }
 
+export function normalizeThumbnailUrl(url?: string): string {
+  if (!url) return "";
+  return url.startsWith('//') ? `https:${url}` : url;
+}
+
 export function getVideoId(song: YTNodes.MusicResponsiveListItem): string {
   return song.id || (song as any).videoId ||
     (song.overlay?.content?.is(YTNodes.MusicPlayButton) ? (song.overlay.content as any).endpoint?.payload?.videoId : undefined) ||
@@ -117,6 +122,7 @@ export function streamMapper(node: Helpers.YTNode): YTItem | null {
     const subtext = (album || '') + (views ? (album ? ' • ' : '') + views : '');
 
     const videoId = getVideoId(song);
+    const thumbnailUrl = getThumbnail(song.thumbnail?.contents || []);
 
     // Try to get playlistId (OLAK...) from menu items for the albumId field
     const playlistId = song.menu?.items?.find((i: any) =>
@@ -131,7 +137,7 @@ export function streamMapper(node: Helpers.YTNode): YTItem | null {
       authorId: song.artists?.[0]?.channel_id || "",
       albumId: playlistId,
       duration: formatDuration(song.duration?.text),
-      img: '/' + getThumbnailId(song.thumbnail?.contents?.[0]?.url),
+      img: normalizeThumbnailUrl(thumbnailUrl),
       subtext,
       type: 'song'
     };

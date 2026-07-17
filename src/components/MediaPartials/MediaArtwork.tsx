@@ -26,7 +26,6 @@ export default function() {
       classList={{ 'mediaArtwork--wide': isWideArtwork() }}
       ref={imgRef}
       src={playerStore.mediaArtwork}
-      crossorigin="anonymous"
       alt={"Media Artwork for " + playerStore.stream.title}
       onclick={() => {
         if (playerStore.isMusic)
