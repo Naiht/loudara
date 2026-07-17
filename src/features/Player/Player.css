@@ -252,6 +252,13 @@
     opacity: 0.9;
     font-size: var(--font-size-4) !important;
     font-weight: var(--font-weight-1) !important;
+    flex: 0 0 auto;
+  }
+
+  button.is-disabled,
+  button[aria-disabled="true"] {
+    opacity: 0.28;
+    cursor: not-allowed;
   }
 
   #playButton {

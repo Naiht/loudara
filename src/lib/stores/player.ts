@@ -4,6 +4,7 @@ import { navStore, params, updateParam, addToQueue, queueStore, setQueueStore, s
 import { config, cssVar, themer, addToCollection, player, shuffle, streamCache } from "@utils";
 import { isQueuePrefetchActive } from "@modules/queuePrefetch";
 import { getNativeSimilar, isNativeApp } from "@platform/native";
+import { addNativePlaybackListener, addNativeTransportListener, getNativePlaybackState, type NativePlaybackState } from "@platform/native/playback";
 
 const blankImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
@@ -42,7 +43,7 @@ const createInitialState = (): PlayerStore => ({
   fullDuration: 0,
   playbackRate: 1.0,
   loop: false,
-  volume: parseFloat(config.volume) / 100,
+  volume: isNativeApp ? 1 : parseFloat(config.volume) / 100,
   stream: {
     title: '',
     author: '',
@@ -113,13 +114,15 @@ createRoot(() => {
 
   let historyID: string | undefined = '';
   let historyTimeoutId = 0;
+  let lastNativeError = '';
+  let nativeEndedHandled = false;
 
   if ('mediaSession' in navigator)
     import('@modules/mediaSession').then(m => m.initMediaSession());
 
   playerStore.audio.volume = playerStore.volume;
 
-  playerStore.audio.onended = () => {
+  function handlePlaybackEnded() {
     if (queueStore.list.length)
       playNext();
     else {
@@ -130,7 +133,7 @@ createRoot(() => {
     }
   }
 
-  playerStore.audio.onplaying = () => {
+  function handlePlaybackPlaying() {
     setPlayerStore('playbackState', 'playing');
     if ('mediaSession' in navigator)
       import('@modules/mediaSession').then(m => {
@@ -155,7 +158,7 @@ createRoot(() => {
       }, 1e4);
   }
 
-  playerStore.audio.onpause = () => {
+  function handlePlaybackPaused() {
     setPlayerStore('playbackState', 'paused');
     if ('mediaSession' in navigator)
       import('@modules/mediaSession').then(m => {
@@ -163,7 +166,99 @@ createRoot(() => {
         m.updateMediaSessionPosition();
       });
     clearTimeout(historyTimeoutId);
-  };
+  }
+
+  function applyPlaybackPosition(seconds: number) {
+    if (!Number.isFinite(seconds)) return;
+
+    if (document.activeElement?.matches('input[type="range"]'))
+      return;
+
+    const { lrcSync, fullDuration, isMusic } = playerStore;
+
+    if (lrcSync)
+      lrcSync(seconds);
+
+    setPlayerStore('currentTime', seconds);
+
+    const { ref } = navStore.player;
+    if (ref) {
+      const { offsetHeight, offsetWidth } = ref;
+      const diff = isMusic ? (offsetHeight - offsetWidth) : offsetWidth;
+      const scale = fullDuration ? (seconds / fullDuration) : 0;
+      const shift = Math.floor(scale * diff);
+      cssVar('--player-bp', `-${shift}px 0`);
+    }
+
+    const t = params.get('t');
+
+    if (t) {
+      if (isMusic) updateParam('t');
+      else if (seconds % 5 === 0) {
+        const str = seconds.toString();
+        if (t !== str)
+          updateParam('t', str);
+      }
+    }
+  }
+
+  function syncNativePlaybackState(state: NativePlaybackState) {
+    if (!isNativeApp || playerStore.isWatching) return;
+
+    if (state.error && state.error !== lastNativeError) {
+      lastNativeError = state.error;
+      setPlayerStore({
+        playbackState: 'none',
+        status: state.error
+      });
+      setStore('snackbar', {
+        message: state.error,
+        type: 'error'
+      });
+      return;
+    }
+
+    if (!state.error)
+      lastNativeError = '';
+
+    if (state.ended) {
+      if (nativeEndedHandled) return;
+      nativeEndedHandled = true;
+      handlePlaybackEnded();
+      return;
+    }
+
+    nativeEndedHandled = false;
+
+    const nextState = state.playbackState || 'none';
+    const currentDuration = Math.floor(state.duration || 0);
+    const nextTime = Math.floor(state.currentTime || 0);
+    const previousState = playerStore.playbackState;
+
+    setPlayerStore({
+      playbackState: nextState,
+      status: nextState === 'loading' ? 'Loading Audio...' : '',
+      fullDuration: currentDuration || playerStore.fullDuration,
+      volume: isNativeApp && !playerStore.isWatching
+        ? 1
+        : (Number.isFinite(state.volume) ? state.volume : playerStore.volume),
+      playbackRate: Number.isFinite(state.playbackRate) ? state.playbackRate : playerStore.playbackRate,
+      loop: typeof state.loop === 'boolean' ? state.loop : playerStore.loop
+    });
+
+    applyPlaybackPosition(nextTime);
+
+    if (nextState === 'playing' && previousState !== 'playing')
+      handlePlaybackPlaying();
+    else if (nextState === 'paused' && previousState !== 'paused')
+      handlePlaybackPaused();
+    else if (nextState === 'none' && previousState !== 'none')
+      clearTimeout(historyTimeoutId);
+  }
+
+  playerStore.audio.onended = handlePlaybackEnded;
+  playerStore.audio.onplaying = handlePlaybackPlaying;
+  playerStore.audio.onpause = handlePlaybackPaused;
   playerStore.audio.addEventListener('loadeddata', themer);
 
 
@@ -190,45 +285,7 @@ createRoot(() => {
   };
 
   playerStore.audio.ontimeupdate = () => {
-    if (document.activeElement?.matches('input[type="range"]'))
-      return;
-
-    const { audio, lrcSync, fullDuration, isMusic } = playerStore;
-
-    // Lyrics
-    if (lrcSync)
-      lrcSync(audio.currentTime);
-
-    const seconds = Math.floor(audio.currentTime);
-
-
-    setPlayerStore('currentTime', seconds);
-
-
-    // Immersive Mode
-    const { ref } = navStore.player;
-    if (ref) {
-      const { offsetHeight, offsetWidth } = ref;
-      const diff = isMusic ? (offsetHeight - offsetWidth) : offsetWidth;
-      const scale = seconds / fullDuration;
-      const shift = Math.floor(scale * diff);
-      cssVar('--player-bp', `-${shift}px 0`);
-    }
-
-    const t = params.get('t');
-
-    if (t) {
-      if (isMusic) updateParam('t');
-      else {
-        if (seconds % 5 === 0) {
-          const str = seconds.toString();
-          if (t !== str)
-            updateParam('t', str);
-        }
-      }
-    }
-
-
+    applyPlaybackPosition(Math.floor(playerStore.audio.currentTime));
   }
 
   playerStore.audio.onloadedmetadata = () => {
@@ -261,6 +318,29 @@ createRoot(() => {
 
 
   playerStore.audio.onerror = () => import('@modules/audioErrorHandler').then(mod => mod.default(playerStore.audio));
+
+  if (isNativeApp) {
+    addNativePlaybackListener(syncNativePlaybackState).catch(() => void 0);
+    addNativeTransportListener(({ action }) => {
+      if (action === 'previous') {
+        if (queueStore.history.length)
+          playPrev();
+        return;
+      }
+
+      if (action === 'next' && queueStore.list.length)
+        playNext();
+    }).catch(() => void 0);
+
+    window.setInterval(() => {
+      if (!playerStore.stream.id || playerStore.isWatching)
+        return;
+
+      getNativePlaybackState()
+        .then(syncNativePlaybackState)
+        .catch(() => void 0);
+    }, 1000);
+  }
 
 });
 

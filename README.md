@@ -45,6 +45,15 @@ pnpm exec tsc --noEmit
 pnpm build
 ```
 
+Desktop development with Tauri:
+
+```sh
+pnpm desktop:dev
+pnpm desktop:build
+```
+
+Tauri requires a Rust toolchain installed locally before the desktop commands can run.
+
 ## Environment
 
 Copy `.env.example` when you need local overrides. Public `VITE_*` variables must not contain private keys or secrets.

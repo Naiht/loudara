@@ -1,4 +1,5 @@
 import { createEffect, createSignal, onCleanup } from 'solid-js';
+import { Capacitor } from '@capacitor/core';
 import {
   applyNavigationSnapshot,
   getNavigationSnapshot,
@@ -65,5 +66,35 @@ export function useNavigationHistory() {
   };
 
   window.addEventListener('popstate', handlePopState);
-  onCleanup(() => window.removeEventListener('popstate', handlePopState));
+
+  let disposed = false;
+  let removeNativeBackListener: (() => Promise<void>) | undefined;
+
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    void import('@capacitor/app').then(async ({ App }) => {
+      if (disposed) return;
+
+      const listener = await App.addListener('backButton', async ({ canGoBack }) => {
+        if (canGoBack) {
+          window.history.back();
+          return;
+        }
+
+        await App.minimizeApp();
+      });
+
+      if (disposed) {
+        await listener.remove();
+        return;
+      }
+
+      removeNativeBackListener = () => listener.remove();
+    });
+  }
+
+  onCleanup(() => {
+    disposed = true;
+    window.removeEventListener('popstate', handlePopState);
+    void removeNativeBackListener?.();
+  });
 }

@@ -60,7 +60,7 @@ export default function(data: YTItem & {
 
 
 
-  const isAlbum = data.context?.id.startsWith('MPREb') || listStore.type === 'album';
+  const isAlbum = data.context?.src === 'album' || data.context?.id.startsWith('MPREb');
   const isFromArtist = data.context?.id?.startsWith('Artist - ');
   const isMusic = data.author?.endsWith('- Topic');
   const imageSource = () => isAlbum ? (listStore.img || data.img || data.id) : (data.img || data.id);

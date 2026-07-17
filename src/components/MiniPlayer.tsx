@@ -1,7 +1,9 @@
 import { lazy, Show } from "solid-js";
 import { config } from "@utils";
-import { LikeButton, MediaDetails, PlayButton, PlayNextButton } from "./MediaPartials";
+import { MediaDetails, PlayButton, PlayNextButton, PlayPrevButton } from "./MediaPartials";
 import { playerStore, setNavStore, queueStore, setPlayerStore } from "@stores";
+import { isNativeApp } from "@platform/native";
+import { seekNativePlayback } from "@platform/native/playback";
 
 
 const MediaArtwork = lazy(() => import('@components/MediaPartials/MediaArtwork'))
@@ -15,7 +17,10 @@ export default function() {
   const seek = (value: number) => {
     if (!Number.isFinite(value) || !playerStore.fullDuration) return;
 
-    playerStore.audio.currentTime = value;
+    if (isNativeApp && !playerStore.isWatching)
+      seekNativePlayback(value).catch(() => void 0);
+    else
+      playerStore.audio.currentTime = value;
     setPlayerStore('currentTime', value);
   };
 
@@ -46,10 +51,9 @@ export default function() {
         <MediaArtwork />
       </Show>
       <MediaDetails />
+      <PlayPrevButton disabled={!queueStore.history.length} />
       <PlayButton />
-      <Show when={queueStore.list.length} fallback={<LikeButton />}>
-        <PlayNextButton />
-      </Show>
+      <PlayNextButton disabled={!queueStore.list.length} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { StreamData } from '@core/streaming';
+import { requestNativePlaybackPermissions } from './playback';
 
 type SearchResultPage = {
   items: (YTItem | YTListItem)[];
@@ -10,6 +11,14 @@ export const isNativeApp = Capacitor.isNativePlatform();
 
 export async function requestRequiredPermissions() {
   if (!isNativeApp) return;
+
+  if (Capacitor.getPlatform() === 'android') {
+    try {
+      await requestNativePlaybackPermissions();
+    } catch (error) {
+      console.warn('Could not request Android playback permissions', error);
+    }
+  }
 }
 
 export async function getNativeSearchSuggestions(q: string, music: boolean) {

@@ -1,6 +1,8 @@
-import { LikeButton, PlayButton, PlayNextButton } from "@components/MediaPartials";
-import { params, playerStore, playPrev, queueStore, setPlayerStore, updateParam, t } from "@stores";
+import { LikeButton, PlayButton, PlayNextButton, PlayPrevButton } from "@components/MediaPartials";
+import { params, playerStore, queueStore, setPlayerStore, updateParam, t } from "@stores";
 import { convertSStoHHMMSS, setConfig } from "@utils";
+import { isNativeApp } from "@platform/native";
+import { seekNativePlayback, setNativePlaybackLoop, setNativePlaybackRate } from "@platform/native/playback";
 import { Accessor, createSignal, onMount, Setter, Show } from "solid-js";
 
 export default function(_: {
@@ -23,6 +25,8 @@ export default function(_: {
       import('@modules/mediaSession').then(m => m.updateMediaSessionPosition());
   }
 
+  const useNativePlayback = () => isNativeApp && !playerStore.isWatching;
+
   return (
     <>
       <span class="slider">
@@ -31,8 +35,12 @@ export default function(_: {
           value={playerStore.currentTime}
           max={playerStore.fullDuration}
           ref={slider}
-          onchange={(e) => {
-            playerStore.audio.currentTime = parseInt(e.target.value);
+          onchange={async (e) => {
+            const position = parseInt(e.target.value);
+            if (useNativePlayback())
+              await seekNativePlayback(position);
+            else
+              playerStore.audio.currentTime = position;
           }}
         />
         <div>
@@ -43,21 +51,18 @@ export default function(_: {
 
       <div class="mainShelf">
 
-        <Show when={queueStore.history.length}>
-          <button
-            aria-label={t('player_play_previous')}
-            class="ri-skip-back-fill"
-            id="playPrevButton"
-            onclick={playPrev}
-          ></button>
-        </Show>
+        <PlayPrevButton disabled={!queueStore.history.length} />
 
         <button
           aria-label={t('player_seek_backward')}
           class="ri-replay-15-line"
           id="seekBwdButton"
-          onclick={() => {
-            playerStore.audio.currentTime -= 15;
+          onclick={async () => {
+            const position = Math.max(0, playerStore.currentTime - 15);
+            if (useNativePlayback())
+              await seekNativePlayback(position);
+            else
+              playerStore.audio.currentTime = position;
           }}
         ></button>
 
@@ -67,13 +72,18 @@ export default function(_: {
           aria-label={t('player_seek_forward')}
           class="ri-forward-15-line"
           id="seekFwdButton"
-          onclick={() => {
-            playerStore.audio.currentTime += 15;
+          onclick={async () => {
+            const position = Math.min(
+              playerStore.fullDuration || Infinity,
+              playerStore.currentTime + 15
+            );
+            if (useNativePlayback())
+              await seekNativePlayback(position);
+            else
+              playerStore.audio.currentTime = position;
           }}
         ></button>
-        <Show when={queueStore.list.length}>
-          <PlayNextButton />
-        </Show>
+        <PlayNextButton disabled={!queueStore.list.length} />
 
       </div>
 
@@ -82,10 +92,13 @@ export default function(_: {
         <select
           id="playSpeed"
           value={playerStore.playbackRate.toFixed(2)}
-          onchange={e => {
+          onchange={async e => {
             const ref = e.target;
             const speed = parseFloat(ref.value);
-            playerStore.audio.playbackRate = speed;
+            if (useNativePlayback())
+              await setNativePlaybackRate(speed);
+            else
+              playerStore.audio.playbackRate = speed;
             setPlayerStore('playbackRate', speed);
             updatePositionState();
             ref.blur();
@@ -125,9 +138,12 @@ export default function(_: {
           aria-label={t("player_loop")}
           class="ri-repeat-fill"
           classList={{ on: playerStore.loop }}
-          onclick={() => {
+          onclick={async () => {
             const newLoopState = !playerStore.loop;
-            playerStore.audio.loop = newLoopState;
+            if (useNativePlayback())
+              await setNativePlaybackLoop(newLoopState);
+            else
+              playerStore.audio.loop = newLoopState;
             setPlayerStore('loop', newLoopState);
           }}
         ></i>
@@ -148,34 +164,36 @@ export default function(_: {
           ></i>
         </Show>
 
-        <label class="volumeControl" aria-label="Volumen">
-          <i class="ri-volume-down-line" aria-hidden="true"></i>
-          <input
-            id="volumeChanger"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={playerStore.volume}
-            onInput={e => {
-              const ref = e.currentTarget;
-              const vol = parseFloat(ref.value);
+        <Show when={!useNativePlayback()}>
+          <label class="volumeControl" aria-label="Volumen">
+            <i class="ri-volume-down-line" aria-hidden="true"></i>
+            <input
+              id="volumeChanger"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={playerStore.volume}
+              onInput={e => {
+                const ref = e.currentTarget;
+                const vol = parseFloat(ref.value);
 
-              playerStore.audio.volume = vol;
-              setConfig('volume', (vol * 100).toString());
-              setPlayerStore('volume', vol);
-            }}
-            onchange={e => {
-              const ref = e.currentTarget;
-              const vol = parseFloat(ref.value);
+                playerStore.audio.volume = vol;
+                setConfig('volume', (vol * 100).toString());
+                setPlayerStore('volume', vol);
+              }}
+              onchange={e => {
+                const ref = e.currentTarget;
+                const vol = parseFloat(ref.value);
 
-              playerStore.audio.volume = vol;
-              setConfig('volume', (vol * 100).toString());
-              setPlayerStore('volume', vol);
-              ref.blur();
-            }}
-          />
-        </label>
+                playerStore.audio.volume = vol;
+                setConfig('volume', (vol * 100).toString());
+                setPlayerStore('volume', vol);
+                ref.blur();
+              }}
+            />
+          </label>
+        </Show>
 
       </div>
 

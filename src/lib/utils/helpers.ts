@@ -1,6 +1,8 @@
 import { setStore, playerStore, setPlayerStore, t } from "@stores";
 import { config, player } from "@utils";
 import type { AudioStream, StreamData } from "@core/streaming";
+import { isNativeApp } from "@platform/native";
+import { pauseNativePlayback, playNativePlayback, seekNativePlayback } from "@platform/native/playback";
 
 export const idFromURL = (link: string | null) => link?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)([_0-9a-z-]+)/i)?.[7];
 export function playlistIdFromURL(link: string | null) {
@@ -84,12 +86,18 @@ export function proxyHandler(
 export async function quickSwitch() {
   const { audio, stream, playbackState } = playerStore;
   if (!stream.id) return;
+  const useNativePlayback = isNativeApp && !playerStore.isWatching;
   if (playbackState === 'playing')
-    audio.pause();
-  const timeOfSwitch = audio.currentTime;
+    useNativePlayback ? await pauseNativePlayback() : audio.pause();
+  const timeOfSwitch = useNativePlayback ? playerStore.currentTime : audio.currentTime;
   await player(stream.id);
   setPlayerStore('currentTime', timeOfSwitch);
-  audio.play();
+  if (useNativePlayback) {
+    await seekNativePlayback(timeOfSwitch);
+    await playNativePlayback();
+  } else {
+    audio.play();
+  }
 }
 
 

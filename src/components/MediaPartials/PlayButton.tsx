@@ -1,4 +1,6 @@
 import { playerStore, t } from "@stores";
+import { isNativeApp } from "@platform/native";
+import { pauseNativePlayback, playNativePlayback } from "@platform/native/playback";
 
 export default function() {
 
@@ -13,15 +15,16 @@ export default function() {
     <button
       class={icons[playerStore.playbackState]}
       id="playButton"
-      onclick={() => {
+      onclick={async () => {
         const { stream, playbackState, audio } = playerStore;
+        const useNativePlayback = isNativeApp && !playerStore.isWatching;
         if (
           stream.id &&
           playbackState === 'playing'
         )
-          audio.pause();
+          useNativePlayback ? await pauseNativePlayback() : audio.pause();
         else
-          audio.play();
+          useNativePlayback ? await playNativePlayback() : audio.play();
       }}
       aria-label={t('player_play_button')}
     ></button>

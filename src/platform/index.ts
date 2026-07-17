@@ -1,4 +1,5 @@
 import type { PlatformServices } from './contracts';
+import { isTauriRuntimeAvailable, tauriPlatform } from './tauri';
 import { webPlatform } from './web';
 
 export type {
@@ -9,4 +10,6 @@ export type {
   StreamingCredentialsPort
 } from './contracts';
 
-export const platform: PlatformServices = webPlatform;
+export const platform: PlatformServices = isTauriRuntimeAvailable()
+  ? tauriPlatform
+  : webPlatform;

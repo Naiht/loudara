@@ -2,6 +2,8 @@ import { playerStore, setPlayerStore, setStore } from "@stores";
 import { config, convertSStoHHMMSS } from "@utils";
 import { isQueuePrefetchActive } from "../modules/queuePrefetch";
 import type { StreamData } from "@core/streaming";
+import { isNativeApp } from "@platform/native";
+import { prepareNativePlaybackTrack } from "@platform/native/playback";
 
 let playerAbortController: AbortController;
 export async function player(id?: string) {
@@ -14,6 +16,7 @@ export async function player(id?: string) {
   if (!id) return;
 
   const enforceVideo = !playerStore.isMusic && playerStore.isWatching;
+  const useNativePlayback = isNativeApp && !playerStore.isWatching;
 
   if (!enforceVideo)
     setPlayerStore({
@@ -43,6 +46,7 @@ export async function player(id?: string) {
   }
 
   const streamData = data as StreamData;
+  setPlayerStore('currentTime', 0);
 
   await import('../modules/setMetadata')
     .then(mod => mod.default({
@@ -54,8 +58,43 @@ export async function player(id?: string) {
       img: playerStore.stream.img
     }));
 
-  import('../modules/setAudioStreams')
-    .then(mod => mod.default(streamData.streams));
+  if (useNativePlayback) {
+    const { getAudioStreamCandidates } = await import('../modules/setAudioStreams');
+    const candidates = getAudioStreamCandidates(streamData.streams);
+    const stream = candidates[0];
+
+    if (!stream) {
+      const message = 'Loading Audio Failed';
+      setPlayerStore({
+        playbackState: 'none',
+        status: message
+      });
+      setStore('snackbar', {
+        message,
+        type: 'error'
+      });
+      return;
+    }
+
+    setPlayerStore('volume', 1);
+
+    await prepareNativePlaybackTrack({
+      id,
+      url: stream.url,
+      title: streamData.title || playerStore.stream.title,
+      artist: streamData.author || playerStore.stream.author,
+      artwork: playerStore.mediaArtwork,
+      duration: streamData.duration || 0,
+      position: 0,
+      autoplay: true,
+      loop: playerStore.loop,
+      playbackRate: playerStore.playbackRate,
+      volume: 1
+    });
+  } else {
+    import('../modules/setAudioStreams')
+      .then(mod => mod.default(streamData.streams));
+  }
 
 
   if (config.similarContent && !enforceVideo && !isQueuePrefetchActive())

@@ -126,6 +126,7 @@ footer {
     color: var(--text);
     font-size: var(--size-5);
     aspect-ratio: 1;
+    flex: 0 0 auto;
     padding: 0;
     margin: 0 var(--size-1);
     transition: transform 0.4s;
@@ -133,6 +134,12 @@ footer {
     &:active {
       transform: scale(0.75);
     }
+  }
+
+  button.is-disabled,
+  button[aria-disabled="true"] {
+    opacity: 0.28;
+    cursor: not-allowed;
   }
 
   #playButton {
@@ -149,7 +156,9 @@ footer {
   }
 
   .mediaDetails {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
     overflow: hidden;
     pointer-events: none;
     margin-left: var(--size-2);

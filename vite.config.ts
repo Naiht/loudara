@@ -10,6 +10,12 @@ import path from 'path';
 
 
 export default defineConfig(({ command, mode }) => {
+  const host = process.env.TAURI_DEV_HOST;
+  const tauriTarget = process.env.TAURI_ENV_PLATFORM
+    ? process.env.TAURI_ENV_PLATFORM === 'windows'
+      ? 'chrome105'
+      : 'safari13'
+    : undefined;
   const env = loadEnv(mode, process.cwd(), '');
   const backendEnv = {
     YOUTUBE_COOKIE: env.YOUTUBE_COOKIE,
@@ -131,6 +137,26 @@ export default defineConfig(({ command, mode }) => {
         postcssJitProps(OpenProps)
       ]
     }
+  },
+  clearScreen: false,
+  server: {
+    port: 5173,
+    strictPort: true,
+    host: host || false,
+    hmr: host ? {
+      protocol: 'ws',
+      host,
+      port: 1421
+    } : undefined,
+    watch: {
+      ignored: ['**/src-tauri/**']
+    }
+  },
+  envPrefix: ['VITE_', 'TAURI_ENV_*'],
+  build: {
+    target: tauriTarget,
+    minify: tauriTarget ? (!process.env.TAURI_ENV_DEBUG ? 'esbuild' : false) : undefined,
+    sourcemap: tauriTarget ? !!process.env.TAURI_ENV_DEBUG : undefined
   }
   };
 });

@@ -24,6 +24,14 @@ function getSelectableStreams(audioStreams: AudioStream[]) {
   return drcStreams.length ? drcStreams : streams;
 }
 
+export function getAudioStreamCandidates(
+  audioStreams: AudioStream[],
+  audio?: HTMLAudioElement
+) {
+  const selectableStreams = getSelectableStreams(audioStreams);
+  return selectPlayableAudioStreams(selectableStreams, audio);
+}
+
 export default async function(
   audioStreams: AudioStream[],
   prefetchNode?: HTMLAudioElement
@@ -42,8 +50,7 @@ export default async function(
 
 
   const target = prefetchNode || playerStore.audio;
-  const selectableStreams = getSelectableStreams(audioStreams);
-  const candidates = selectPlayableAudioStreams(selectableStreams, target);
+  const candidates = getAudioStreamCandidates(audioStreams, target);
 
   if (!candidates.length) {
     setPlayerStore('status', 'No browser-compatible audio streams found');
