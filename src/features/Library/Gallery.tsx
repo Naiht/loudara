@@ -2,7 +2,7 @@ import { For, Show, createSignal, onMount } from "solid-js";
 import { getTracksMap, getCollection } from "@utils";
 import ListItem from "@components/ListItem";
 import { t, store } from "@stores";
-import { getNativeGallery, isNativeApp } from "@platform/native";
+import { getEmbeddedGallery, hasEmbeddedBackend } from "@platform/embedded";
 
 export default function() {
   const [gallery, setGallery] = createSignal({
@@ -40,8 +40,8 @@ export default function() {
 
     setIsGalleryLoading(true);
     try {
-      const data = isNativeApp
-        ? await getNativeGallery(artistIds)
+      const data = hasEmbeddedBackend
+        ? await getEmbeddedGallery(artistIds)
         : await fetch(`${store.api}/gallery?id=${artistIds.join(',')}`).then(res => {
           if (!res.ok) throw new Error('Could not load gallery');
           return res.json() as Promise<{ userArtists: Channel[], relatedArtists: Channel[], relatedPlaylists: Playlist[] }>;

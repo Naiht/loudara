@@ -3,7 +3,7 @@ import { getLists } from "@utils";
 import StreamItem from "@components/StreamItem";
 import ListItem from "@components/ListItem";
 import { t, store } from "@stores";
-import { getNativeSubfeed, isNativeApp } from "@platform/native";
+import { getEmbeddedSubfeed, hasEmbeddedBackend } from "@platform/embedded";
 
 export default function() {
   const [isSubfeedLoading, setIsSubfeedLoading] = createSignal(false);
@@ -18,8 +18,8 @@ export default function() {
     setIsSubfeedLoading(true);
     const channelIds = channels.map(channel => channel.id).join(',');
     try {
-      const data = isNativeApp
-        ? await getNativeSubfeed(channels.map(channel => channel.id))
+      const data = hasEmbeddedBackend
+        ? await getEmbeddedSubfeed(channels.map(channel => channel.id))
         : await fetch(`${store.api}/subfeed?id=${channelIds}`).then(res => {
           if (!res.ok) throw new Error('Could not load channel feed');
           return res.json() as Promise<YTItem[]>;

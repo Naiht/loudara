@@ -1,6 +1,6 @@
 import { setStore, t, listStore, setListStore, navStore, setNavStore, updateParam, store } from '@stores';
 import { config, drawer, setDrawer, parseDuration, playlistIdFromURL } from '@utils';
-import { getNativeListData, isNativeApp } from '@platform/native';
+import { getEmbeddedListData, hasEmbeddedBackend } from '@platform/embedded';
 
 export const syncLibrary = (action: 'add' | 'remove' | 'schedule' | 'init', id?: string) => {
   if (config.dbsync)
@@ -156,8 +156,8 @@ export function createUniquePlaylistTitle(baseTitle: string) {
 }
 
 async function fetchPlaylistSnapshot(playlistId: string) {
-  const data = isNativeApp
-    ? await getNativeListData('playlist', playlistId, { all: true }) as YTPlaylistItem
+  const data = hasEmbeddedBackend
+    ? await getEmbeddedListData('playlist', playlistId, { all: true }) as YTPlaylistItem
     : await fetch(`${store.api}/playlist?id=${encodeURIComponent(playlistId)}&all=true`).then(response => {
       if (!response.ok) {
         throw new Error(t('library_youtube_playlist_fetch_error'));

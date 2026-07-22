@@ -1,7 +1,7 @@
 import { createStore } from "solid-js/store";
 import { setNavStore, updateParam, setStore, store, navStore } from "@stores";
 import { getLibraryAlbums, drawer } from "@utils";
-import { getNativeListData, isNativeApp } from "@platform/native";
+import { getEmbeddedListData, hasEmbeddedBackend } from "@platform/embedded";
 
 const initialState = () => ({
   isLoading: false,
@@ -92,8 +92,8 @@ export async function getList(
 
   try {
     const fetchListData = async (requestType: 'playlist' | 'channel' | 'album' | 'artist', page = 1) => {
-      if (isNativeApp) {
-        return getNativeListData(requestType, id, { all, page }) as Promise<YTListItem>;
+      if (hasEmbeddedBackend) {
+        return getEmbeddedListData(requestType, id, { all, page }) as Promise<YTListItem>;
       }
 
       const pageQuery = requestType === 'channel' && page > 1 ? `&page=${page}` : '';
@@ -204,8 +204,8 @@ export async function loadMoreList() {
   setListStore('isLoadingMore', true);
 
   try {
-    const data = isNativeApp
-      ? await getNativeListData('channel', listStore.id, { page: nextPage }) as YTChannelItem
+    const data = hasEmbeddedBackend
+      ? await getEmbeddedListData('channel', listStore.id, { page: nextPage }) as YTChannelItem
       : await fetch(`${store.api}/channel?id=${listStore.id}&page=${nextPage}`)
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch channel');

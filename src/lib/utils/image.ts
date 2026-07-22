@@ -24,6 +24,34 @@ export function generateImageUrl(
   return prefix;
 }
 
+export function createFallbackArtworkUrl(label = '') {
+  const initial = (label.trim().charAt(0) || 'L').toUpperCase();
+  const safeInitial = initial.replace(/[&<>"']/g, '') || 'L';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+      <defs>
+        <linearGradient id="loudara-artwork-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#5b3a86" />
+          <stop offset="100%" stop-color="#241532" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="320" rx="42" fill="url(#loudara-artwork-gradient)" />
+      <circle cx="160" cy="160" r="94" fill="rgba(255,255,255,0.08)" />
+      <text
+        x="160"
+        y="186"
+        fill="#f4eaff"
+        font-family="Quicksand, Arial, sans-serif"
+        font-size="116"
+        font-weight="700"
+        text-anchor="middle"
+      >${safeInitial}</text>
+    </svg>
+  `.trim();
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 
 
 export function getThumbIdFromLink(url: string) {
@@ -115,7 +143,14 @@ export function themer() {
   if (loadImage && stream.id)
     import('../modules/extractColorFromImage')
       .then(mod => mod.default)
-      .then(e => e(generateImageUrl(stream.id, 'mq'), true))
+      .then(e => e(
+        generateImageUrl(
+          stream.img || stream.id,
+          'mq',
+          stream.author?.endsWith(' - Topic')
+        ),
+        true
+      ))
       .then(colorInjector);
   else
     colorInjector(

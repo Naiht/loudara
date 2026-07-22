@@ -1,4 +1,5 @@
 import { Innertube, UniversalCache, YTNodes, type Helpers } from 'youtubei.js';
+import { getRuntimeFetch } from '@platform/tauri/fetch';
 
 let youtube: Innertube | null = null;
 
@@ -8,7 +9,7 @@ export async function getClient(): Promise<Innertube> {
       cache: new UniversalCache(false),
       generate_session_locally: true,
       retrieve_player: false,
-      fetch: fetch.bind(globalThis)
+      fetch: getRuntimeFetch()
     });
 
   return youtube;

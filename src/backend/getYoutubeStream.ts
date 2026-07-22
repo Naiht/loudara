@@ -1,5 +1,6 @@
 import { Innertube, UniversalCache } from 'youtubei.js';
 import type { StreamData } from '../core/streaming/types.js';
+import { getRuntimeFetch } from '@platform/tauri/fetch';
 
 export type YoutubeSessionConfig = {
   cookie?: string;
@@ -140,7 +141,7 @@ function getInnertube(sessionConfig: YoutubeSessionConfig = {}): Promise<Innertu
     po_token: config.poToken,
     retrieve_player: true,
     visitor_data: config.visitorData,
-    fetch: fetch.bind(globalThis)
+    fetch: getRuntimeFetch()
   });
   return innertubePromise;
 }
@@ -420,7 +421,7 @@ async function fetchResolvedMedia(
   upstreamHeaders.set('Accept', request.headers.get('Accept') || '*/*');
   upstreamHeaders.set('User-Agent', request.headers.get('User-Agent') || 'Mozilla/5.0');
 
-  const response = await fetch(media.url, { headers: upstreamHeaders });
+  const response = await getRuntimeFetch()(media.url, { headers: upstreamHeaders });
   const headers = new Headers();
   const passthroughHeaders = [
     'Accept-Ranges',
@@ -508,7 +509,7 @@ async function fetchMediaRange(
   start: number,
   end: number
 ) {
-  const response = await fetch(media.url, {
+  const response = await getRuntimeFetch()(media.url, {
     headers: createUpstreamHeaders(request, `bytes=${start}-${end}`)
   });
 

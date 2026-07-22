@@ -1,5 +1,5 @@
 import { store } from '@stores';
-import { getNativeSimilar, isNativeApp } from '@platform/native';
+import { getEmbeddedSimilar, hasEmbeddedBackend } from '@platform/embedded';
 
 export default async function(seed: TrackItem): Promise<TrackItem[]> {
   const title = seed.title;
@@ -9,8 +9,8 @@ export default async function(seed: TrackItem): Promise<TrackItem[]> {
     throw new Error('No hay suficiente informacion para iniciar radio');
   }
 
-  const data = isNativeApp
-    ? await getNativeSimilar({ title, artist, limit: '25' })
+  const data = hasEmbeddedBackend
+    ? await getEmbeddedSimilar({ title, artist, limit: '25' })
     : await fetch(`${store.api}/similar?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&limit=25`)
       .then(res => {
         if (!res.ok) throw new Error('No se pudo iniciar radio');

@@ -3,7 +3,8 @@ import { createStore } from "solid-js/store";
 import { navStore, params, updateParam, addToQueue, queueStore, setQueueStore, setStore, store, groupQueueByAuthor } from "@stores";
 import { config, cssVar, themer, addToCollection, player, shuffle, streamCache } from "@utils";
 import { isQueuePrefetchActive } from "@modules/queuePrefetch";
-import { getNativeSimilar, isNativeApp } from "@platform/native";
+import { getEmbeddedSimilar, hasEmbeddedBackend } from "@platform/embedded";
+import { isNativeApp } from "@platform/native";
 import { addNativePlaybackListener, addNativeTransportListener, getNativePlaybackState, type NativePlaybackState } from "@platform/native/playback";
 
 const blankImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -23,6 +24,8 @@ type PlayerStore = {
   status: string,
   playbackState: 'none' | 'playing' | 'paused' | 'loading',
   mediaArtwork: string,
+  mediaArtworkSource: string,
+  mediaArtworkFallback: boolean,
   supportsOpus: Promise<boolean>,
   data: {},
   immersive: boolean,
@@ -52,6 +55,8 @@ const createInitialState = (): PlayerStore => ({
     duration: ''
   },
   mediaArtwork: blankImage,
+  mediaArtworkSource: '',
+  mediaArtworkFallback: false,
   supportsOpus: navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     audio: {
@@ -349,8 +354,8 @@ async function getRecommendations() {
   const currentTitle = playerStore.stream.title;
   const title = encodeURIComponent(currentTitle);
   const artist = encodeURIComponent(playerStore.stream.author?.slice(0, -8) ?? '');
-  const request = isNativeApp
-    ? getNativeSimilar({
+  const request = hasEmbeddedBackend
+    ? getEmbeddedSimilar({
       title: currentTitle,
       artist: playerStore.stream.author?.slice(0, -8) ?? '',
       limit: '10'

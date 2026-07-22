@@ -1,7 +1,7 @@
 import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
 import { navStore, playerStore, setNavStore, setPlayerStore, setQueueStore, store, t } from '@stores';
 import { config, drawer, generateImageUrl, getCollection, getTracksMap, player } from '@utils';
-import { getNativeTrending, isNativeApp } from '@platform/native';
+import { getEmbeddedTrending, hasEmbeddedBackend } from '@platform/embedded';
 
 type ShelfTrack = TrackItem & {
   img?: string;
@@ -92,8 +92,8 @@ export default function Trending() {
   onMount(async () => {
     setIsLoading(true);
     try {
-      const data = isNativeApp
-        ? await getNativeTrending()
+      const data = hasEmbeddedBackend
+        ? await getEmbeddedTrending()
         : await fetch(`${store.api}/trending`).then(res => {
           if (!res.ok) throw new Error('Could not load trending music');
           return res.json() as Promise<(YTItem | YTListItem)[]>;

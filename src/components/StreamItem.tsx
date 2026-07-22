@@ -1,6 +1,6 @@
 import { Accessor, Show, createSignal } from 'solid-js';
 import './StreamItem.css';
-import { config, hostResolver, player, removeFromCollection, getCollectionItems, generateImageUrl } from '@utils';
+import { config, hostResolver, player, getCollectionItems, generateImageUrl, createFallbackArtworkUrl } from '@utils';
 import { setStore, queueStore, setQueueStore, listStore, navStore, setNavStore, playerStore, setPlayerStore } from '@stores';
 
 export default function(data: YTItem & {
@@ -21,6 +21,10 @@ export default function(data: YTItem & {
   const [getImage, setImage] = createSignal('');
 
   let parent!: HTMLAnchorElement;
+
+  function setFallbackImage() {
+    setImage(createFallbackArtworkUrl(data.title || data.author || 'L'));
+  }
 
 
   function handleThumbnailLoad(e: Event) {
@@ -47,15 +51,8 @@ export default function(data: YTItem & {
       return;
     }
 
-    setImage('');
+    setFallbackImage();
     parent.classList.remove('ravel');
-
-    if (data.context?.src === 'collection' || data.context?.src === 'playlists' || data.context?.src === 'album') {
-      // Most likely this saved entry no longer has a valid YouTube thumbnail.
-      if (data.context?.id) {
-        removeFromCollection(data.context?.id, [data.id])
-      }
-    }
   }
 
   function handleThumbnailError() {
@@ -69,7 +66,7 @@ export default function(data: YTItem & {
       setImage(
         src.includes('vi_webp') ?
           src.replace('.webp', '.jpg').replace('vi_webp', 'vi') :
-          ''
+          createFallbackArtworkUrl(data.title || data.author || 'L')
       );
     }
 

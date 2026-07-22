@@ -1,5 +1,5 @@
 import { playerStore, setPlayerStore } from "@stores";
-import { config, generateImageUrl } from "@utils";
+import { config, createFallbackArtworkUrl, generateImageUrl } from "@utils";
 
 function getArtworkUrl(data: TrackItem, music: boolean) {
   if (data.img?.startsWith('/')) {
@@ -32,8 +32,11 @@ export default async function(data: TrackItem) {
 
   const img = getArtworkUrl(data, music);
   if (config.loadImage) {
-
-    setPlayerStore('mediaArtwork', img);
+    setPlayerStore({
+      mediaArtwork: img,
+      mediaArtworkSource: img,
+      mediaArtworkFallback: false
+    });
 
     metadataObj.artwork = [
       { src: img, sizes: '96x96' },
@@ -43,6 +46,13 @@ export default async function(data: TrackItem) {
       { src: img, sizes: '384x384' },
       { src: img, sizes: '512x512' },
     ]
+  }
+  else {
+    setPlayerStore({
+      mediaArtwork: createFallbackArtworkUrl(data.title),
+      mediaArtworkSource: '',
+      mediaArtworkFallback: false
+    });
   }
 
   document.title = data.title + ' - Loudara';

@@ -1,7 +1,7 @@
 import { createStore } from 'solid-js/store';
 import { config, drawer, setDrawer } from '@utils';
 import { updateParam, setStore, store } from '@stores';
-import { getNativeSearchResults, getNativeSearchSuggestions, isNativeApp } from '@platform/native';
+import { getEmbeddedSearchResults, getEmbeddedSearchSuggestions, hasEmbeddedBackend } from '@platform/embedded';
 
 type SearchResultPage = {
   items: (YTItem | YTListItem)[];
@@ -86,8 +86,8 @@ export function getSearchSuggestions(text: string) {
     setSearchStore('suggestions', 'controller', newController);
 
     const isMusic = ['song', 'artist', 'album'].includes(config.searchFilter);
-    const request = isNativeApp
-      ? getNativeSearchSuggestions(text, isMusic)
+    const request = hasEmbeddedBackend
+      ? getEmbeddedSearchSuggestions(text, isMusic)
       : fetch(`${store.api}/search-suggestions?q=${encodeURIComponent(text)}&music=${isMusic}`, { signal: newController.signal })
         .then(res => {
           if (!res.ok) throw new Error('Could not load search suggestions');
@@ -151,8 +151,8 @@ export async function getSearchResults(options: boolean | { force?: boolean, app
   }
 
   try {
-    const data = isNativeApp
-      ? await getNativeSearchResults({ q: query, f: searchFilter, page: nextPage })
+    const data = hasEmbeddedBackend
+      ? await getEmbeddedSearchResults({ q: query, f: searchFilter, page: nextPage })
       : await fetch(`${store.api}/search?q=${encodeURIComponent(query)}&f=${searchFilter}&page=${nextPage}`)
         .then(res => {
           if (!res.ok) throw new Error('Could not load search results');

@@ -17,6 +17,16 @@ export class ApiStreamProvider implements StreamProvider {
     this.timeoutMs = options.timeoutMs || 10_000;
   }
 
+  private resolveUrl(url: string): string {
+    if (!url || /^https?:\/\//i.test(url)) return url;
+
+    const baseOrigin = /^https?:\/\//i.test(this.baseUrl)
+      ? this.baseUrl
+      : new URL(this.baseUrl, window.location.origin).toString();
+
+    return new URL(url, baseOrigin).toString();
+  }
+
   async getStreamData(videoId: string, signal?: AbortSignal): Promise<StreamData> {
     const headers = await getYoutubeSessionHeaders();
     const data = await fetchStreamJson(
@@ -24,6 +34,22 @@ export class ApiStreamProvider implements StreamProvider {
       { headers, signal, timeoutMs: this.timeoutMs }
     );
 
-    return normalizeStreamData(videoId, data, 'api');
+    const normalized = normalizeStreamData(videoId, data, 'api');
+
+    return {
+      ...normalized,
+      streams: normalized.streams.map((stream) => ({
+        ...stream,
+        url: this.resolveUrl(stream.url)
+      })),
+      videoStreams: normalized.videoStreams?.map((stream) => ({
+        ...stream,
+        url: this.resolveUrl(stream.url)
+      })) || [],
+      captions: normalized.captions?.map((caption) => ({
+        ...caption,
+        url: this.resolveUrl(caption.url)
+      })) || []
+    };
   }
 }

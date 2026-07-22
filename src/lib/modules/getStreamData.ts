@@ -2,10 +2,13 @@ import { setPlayerStore } from '@stores';
 import { streamCache } from '@utils';
 import { StreamUnavailableError, type StreamData } from '@core/streaming';
 import { createWebStreamProvider } from '@platform/web/streaming';
-import { getNativeStreamData, isNativeApp } from '@platform/native';
+import { getEmbeddedStreamData, hasEmbeddedBackend } from '@platform/embedded';
+import { isConstrainedMobileConnection, isNativeApp } from '@platform/native';
 
-const STREAM_COOLDOWN_BASE_MS = 3_500;
-const STREAM_COOLDOWN_MAX_MS = 12_000;
+const DEFAULT_STREAM_COOLDOWN_BASE_MS = 3_500;
+const DEFAULT_STREAM_COOLDOWN_MAX_MS = 12_000;
+const MOBILE_STREAM_COOLDOWN_BASE_MS = 6_500;
+const MOBILE_STREAM_COOLDOWN_MAX_MS = 24_000;
 
 const inflightRequests = new Map<string, Promise<StreamData>>();
 
@@ -22,6 +25,20 @@ function isAbortError(error: unknown) {
 
 function isSaturationMessage(message: string) {
   return /429|403|too many|rate limit|unusual traffic|temporar|bot|forbidden|confirm|saturated|timeout/i.test(message);
+}
+
+function getCooldownWindow() {
+  if (isNativeApp && isConstrainedMobileConnection()) {
+    return {
+      baseMs: MOBILE_STREAM_COOLDOWN_BASE_MS,
+      maxMs: MOBILE_STREAM_COOLDOWN_MAX_MS
+    };
+  }
+
+  return {
+    baseMs: DEFAULT_STREAM_COOLDOWN_BASE_MS,
+    maxMs: DEFAULT_STREAM_COOLDOWN_MAX_MS
+  };
 }
 
 async function waitForCooldown(signal?: AbortSignal) {
@@ -49,8 +66,8 @@ async function waitForCooldown(signal?: AbortSignal) {
 async function resolveStreamData(id: string, signal?: AbortSignal): Promise<StreamData> {
   setPlayerStore('status', 'Obteniendo audio...');
 
-  return isNativeApp
-    ? getNativeStreamData(id)
+  return hasEmbeddedBackend
+    ? getEmbeddedStreamData(id)
     : createWebStreamProvider().getStreamData(id, signal);
 }
 
@@ -97,10 +114,11 @@ export default async function(
       : error instanceof Error ? error.message : 'Failed to fetch stream data';
 
     if (isSaturationMessage(message)) {
+      const { baseMs, maxMs } = getCooldownWindow();
       cooldownFailures += 1;
       cooldownUntil = Date.now() + Math.min(
-        STREAM_COOLDOWN_BASE_MS * cooldownFailures,
-        STREAM_COOLDOWN_MAX_MS
+        baseMs * cooldownFailures,
+        maxMs
       );
     }
 
