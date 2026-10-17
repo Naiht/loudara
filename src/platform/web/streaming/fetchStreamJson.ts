@@ -1,4 +1,5 @@
-import { StreamHttpError, StreamTimeoutError } from '@core/streaming';
+import { StreamHttpError, StreamTimeoutError, StreamUnavailableError } from '@core/streaming';
+import type { StreamAttempt } from '@core/streaming';
 
 type FetchStreamJsonOptions = {
   headers?: HeadersInit;
@@ -42,6 +43,16 @@ export async function fetchStreamJson(
     });
 
     if (!res.ok) {
+      const payload = await res.clone().json().catch(() => undefined) as {
+        attempts?: StreamAttempt[];
+        error?: string;
+      } | undefined;
+
+      if (payload?.attempts?.length) {
+        const videoId = decodeURIComponent(url.split('/').pop() || '');
+        throw new StreamUnavailableError(videoId, payload.attempts);
+      }
+
       throw new StreamHttpError(`HTTP error! status: ${res.status}`, res.status);
     }
 

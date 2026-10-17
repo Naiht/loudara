@@ -376,3 +376,21 @@
   color: var(--color-text-tertiary);
   grid-column: 1 / -1;
 }
+
+.list-hero { border-radius: 14px; box-shadow: none; }
+.list-hero p { font-weight: 650; letter-spacing: -0.04em; }
+.list-section__header h2 { font-weight: 650; }
+.list-profile { border-radius: 12px; }
+.list-profile p { font-weight: 650; }
+.list-top-tracks, .listContainer { gap: 2px; }
+
+#listSection .list-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+#listSection .list-carousel .listItem { width: 100%; flex: 0 0 auto; }

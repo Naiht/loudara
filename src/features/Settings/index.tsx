@@ -1,17 +1,20 @@
 import { onMount, createEffect, For, createSignal, Show } from "solid-js";
 import './Settings.css';
-import { setNavStore, t, setStore, updateLang } from '@stores';
+import { setNavStore, t, setStore, updateLang, playerStore } from '@stores';
 import { Selector } from '@components/Selector.tsx';
 import { Button, Input } from '../../ui/components';
 import { platform } from '@platform';
 import { getInvalidYoutubeSessionValueReason } from '@platform/web/streamingCredentials';
 import { config, setConfig, drawer, setDrawer, themer, quickSwitch, deleteCollection, getCollection, streamCache } from '@utils';
 import Dropdown from "./Dropdown";
+import { cancelAutoRadio, scheduleAutoRadio } from '@modules/autoRadio';
 
 export default function() {
   let settingsSection!: HTMLDivElement;
   const isPWA = matchMedia('(display-mode: standalone)').matches;
   const [youtubeCookie, setYoutubeCookie] = createSignal('');
+  const [youtubeVisitorData, setYoutubeVisitorData] = createSignal('');
+  const [youtubePoToken, setYoutubePoToken] = createSignal('');
   const [hasYoutubeSession, setHasYoutubeSession] = createSignal(false);
 
   onMount(() => {
@@ -21,7 +24,9 @@ export default function() {
     void platform.streamingCredentials.get().then(credentials => {
       if (!credentials) return;
       setYoutubeCookie(credentials.cookie);
-      setHasYoutubeSession(Boolean(credentials.cookie));
+      setYoutubeVisitorData(credentials.visitorData);
+      setYoutubePoToken(credentials.poToken);
+      setHasYoutubeSession(Boolean(credentials.cookie || credentials.visitorData || credentials.poToken));
     });
   });
 
@@ -31,11 +36,11 @@ export default function() {
     event.preventDefault();
     const credentials = {
       cookie: youtubeCookie().trim(),
-      visitorData: '',
-      poToken: ''
+      visitorData: youtubeVisitorData().trim(),
+      poToken: youtubePoToken().trim()
     };
 
-    if (!credentials.cookie) {
+    if (!credentials.cookie && !credentials.visitorData && !credentials.poToken) {
       setStore('snackbar', {
         message: t('settings_youtube_session_empty'),
         type: 'warning'
@@ -46,9 +51,11 @@ export default function() {
     const invalidReason = getInvalidYoutubeSessionValueReason(credentials);
     if (invalidReason) {
       setStore('snackbar', {
-        message: t(invalidReason === 'truncated'
-          ? 'settings_youtube_session_truncated'
-          : 'settings_youtube_session_invalid_header'),
+        message: t(invalidReason === 'visitor_required'
+          ? 'settings_youtube_session_visitor_required'
+          : invalidReason === 'truncated'
+            ? 'settings_youtube_session_truncated'
+            : 'settings_youtube_session_invalid_header'),
         type: 'error'
       });
       return;
@@ -56,7 +63,7 @@ export default function() {
 
     await platform.streamingCredentials.set(credentials);
     streamCache.clear();
-    setHasYoutubeSession(true);
+    setHasYoutubeSession(Boolean(credentials.cookie || credentials.visitorData || credentials.poToken));
     setStore('snackbar', {
       message: t('settings_youtube_session_saved'),
       type: 'success'
@@ -67,6 +74,8 @@ export default function() {
     await platform.streamingCredentials.remove();
     streamCache.clear();
     setYoutubeCookie('');
+    setYoutubeVisitorData('');
+    setYoutubePoToken('');
     setHasYoutubeSession(false);
     setStore('snackbar', {
       message: t('settings_youtube_session_removed'),
@@ -90,7 +99,7 @@ export default function() {
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
             props.onclick(e as unknown as MouseEvent);
-            setChecked(!props.checked);
+            setChecked(props.checked);
           }
         }}
       >
@@ -168,6 +177,18 @@ export default function() {
           onclick={() => {
             setConfig('stableVolume', !config.stableVolume);
             quickSwitch();
+          }}
+        />
+
+        <Toggle
+          name='settings_auto_radio'
+          checked={Boolean(config.autoRadio)}
+          onclick={() => {
+            setConfig('autoRadio', !config.autoRadio);
+            if (config.autoRadio && playerStore.playbackState === 'playing')
+              scheduleAutoRadio();
+            else
+              cancelAutoRadio();
           }}
         />
 
@@ -295,6 +316,24 @@ export default function() {
               label={t('settings_youtube_cookie')}
               value={youtubeCookie()}
               oninput={(event) => setYoutubeCookie(event.currentTarget.value)}
+            />
+            <Input
+              id="youtubeVisitorData"
+              type="password"
+              autocomplete="off"
+              spellcheck={false}
+              label={t('settings_youtube_visitor_data')}
+              value={youtubeVisitorData()}
+              oninput={(event) => setYoutubeVisitorData(event.currentTarget.value)}
+            />
+            <Input
+              id="youtubePoToken"
+              type="password"
+              autocomplete="off"
+              spellcheck={false}
+              label={t('settings_youtube_po_token')}
+              value={youtubePoToken()}
+              oninput={(event) => setYoutubePoToken(event.currentTarget.value)}
             />
 
             <div class="settings-session__actions">

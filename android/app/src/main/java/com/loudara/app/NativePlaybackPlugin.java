@@ -142,6 +142,7 @@ public final class NativePlaybackPlugin extends Plugin {
         data.put("loop", snapshot.loop);
         data.put("ended", snapshot.ended);
         data.put("error", snapshot.error);
+        data.put("recoverableError", snapshot.recoverableError);
         return data;
     }
 

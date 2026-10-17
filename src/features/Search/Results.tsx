@@ -1,7 +1,7 @@
 import { createEffect, For, onCleanup, Show, untrack } from 'solid-js';
-import { getList, getSearchResults, searchStore, setListStore, setSearchStore, t } from '@stores';
-import { generateImageUrl } from '@utils';
+import { getSearchResults, searchStore, setSearchStore, t } from '@stores';
 import StreamItem from '@components/StreamItem';
+import ListItem from '@components/ListItem';
 
 export default function SearchResults() {
   let sentinel!: HTMLDivElement;
@@ -32,12 +32,8 @@ export default function SearchResults() {
         ? item.videoCount
         : item.year;
 
-    return secondary ? `${getEntityLabel(item)} • ${secondary}` : getEntityLabel(item);
-  }
-
-  function openList(item: YTListItem) {
-    setListStore('img', item.img);
-    getList(item.id, item.type);
+    const author = item.type === 'album' || item.type === 'playlist' ? item.author : '';
+    return [getEntityLabel(item), author, secondary].filter(Boolean).join(' • ');
   }
 
   createEffect(() => {
@@ -83,22 +79,7 @@ export default function SearchResults() {
       </Show>
 
       <Show when={featuredItem()}>
-        {(item) => (
-          <button
-            class="search-featured-entity"
-            classList={{ 'search-featured-entity--channel': item().type === 'channel' || item().type === 'artist' }}
-            style={{ '--entity-image': `url(${generateImageUrl(item().img, '720')})` }}
-            type="button"
-            onClick={() => openList(item())}
-          >
-            <img src={generateImageUrl(item().img, '')} alt="" />
-            <span>
-              <small class="search-featured-entity__eyebrow">{getEntityLabel(item())}</small>
-              <strong>{item().name}</strong>
-              <small class="search-featured-entity__meta">{getEntityMeta(item())}</small>
-            </span>
-          </button>
-        )}
+        {(item) => <ListItem {...item()} rowSubtitle={getEntityMeta(item())} />}
       </Show>
 
       <For each={trackItems()}>
@@ -116,22 +97,7 @@ export default function SearchResults() {
       </For>
 
       <For each={secondaryItems()}>
-        {(item) => (
-          <button
-            class="search-featured-entity"
-            classList={{ 'search-featured-entity--channel': item.type === 'channel' || item.type === 'artist' }}
-            style={{ '--entity-image': `url(${generateImageUrl(item.img, '720')})` }}
-            type="button"
-            onClick={() => openList(item)}
-          >
-            <img src={generateImageUrl(item.img, '')} alt="" />
-            <span>
-              <small class="search-featured-entity__eyebrow">{getEntityLabel(item)}</small>
-              <strong>{item.name}</strong>
-              <small class="search-featured-entity__meta">{getEntityMeta(item)}</small>
-            </span>
-          </button>
-        )}
+        {(item) => <ListItem {...item} rowSubtitle={getEntityMeta(item)} />}
       </For>
 
       <div ref={sentinel} class="searchlist__sentinel" aria-hidden="true">

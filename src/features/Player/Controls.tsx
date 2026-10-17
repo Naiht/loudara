@@ -27,6 +27,26 @@ export default function(_: {
 
   const useNativePlayback = () => isNativeApp && !playerStore.isWatching;
 
+  const loopModeLabel = () => {
+    if (playerStore.loop === 'track') return 'Bucle: una pista';
+    if (playerStore.loop === 'queue') return 'Bucle: cola o radio';
+    return 'Bucle desactivado';
+  };
+
+  const cycleLoopMode = async () => {
+    const nextMode = playerStore.loop === 'off'
+      ? 'queue'
+      : playerStore.loop === 'queue' ? 'track' : 'off';
+    const repeatTrack = nextMode === 'track';
+
+    if (useNativePlayback())
+      await setNativePlaybackLoop(repeatTrack);
+    else
+      playerStore.audio.loop = repeatTrack;
+
+    setPlayerStore('loop', nextMode);
+  };
+
   return (
     <>
       <span class="slider">
@@ -134,19 +154,23 @@ export default function(_: {
 
         <LikeButton />
 
-        <i
-          aria-label={t("player_loop")}
-          class="ri-repeat-fill"
-          classList={{ on: playerStore.loop }}
-          onclick={async () => {
-            const newLoopState = !playerStore.loop;
-            if (useNativePlayback())
-              await setNativePlaybackLoop(newLoopState);
-            else
-              playerStore.audio.loop = newLoopState;
-            setPlayerStore('loop', newLoopState);
-          }}
-        ></i>
+        <button
+          type="button"
+          class="playerLoopButton"
+          classList={{ on: playerStore.loop !== 'off' }}
+          data-loop-mode={playerStore.loop}
+          aria-pressed={playerStore.loop !== 'off'}
+          aria-label={loopModeLabel()}
+          title={loopModeLabel()}
+          onclick={cycleLoopMode}
+        >
+          <i
+            class={playerStore.loop === 'track'
+              ? 'ri-repeat-one-fill'
+              : playerStore.loop === 'queue' ? 'ri-repeat-2-fill' : 'ri-repeat-2-line'}
+            aria-hidden="true"
+          ></i>
+        </button>
         <Show when={!playerStore.isMusic}>
           <i
             aria-label={t('player_save_progress')}

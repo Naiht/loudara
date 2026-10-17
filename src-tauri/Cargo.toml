@@ -1,6 +1,6 @@
 [package]
 name = "loudara"
-version = "0.1.0"
+version = "1.0.0"
 description = "Intentional audio streaming player for web, desktop and mobile."
 authors = ["Loudara"]
 license = "GPL-3.0"

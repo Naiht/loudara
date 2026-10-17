@@ -3,8 +3,11 @@
 #playerSection {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  height: 100%;
   width: 100%;
   position: relative;
+  overflow: hidden;
 
   & * {
     z-index: 2;
@@ -41,12 +44,6 @@
     z-index: 3;
   }
 
-  .ri-more-2-fill {
-    margin: auto 0;
-    padding: 0 var(--size-00);
-    opacity: 1;
-  }
-
   & i.on {
     background-color: var(--text2);
     color: var(--onBg2);
@@ -59,9 +56,14 @@
 #playerSection article {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  width: 100%;
-  margin: auto 0;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 0;
+  width: min(100%, 560px);
+  margin: 0;
+  margin-inline: auto;
+  padding: clamp(8px, 2dvh, var(--size-4)) clamp(var(--size-3), 5vw, var(--size-6));
+  overflow: hidden;
 
 
   button {
@@ -77,14 +79,15 @@
 
   .playerArtworkFrame {
     display: grid;
-    width: min(100%, 460px);
+    width: min(100%, 38dvh, 440px);
     aspect-ratio: 1;
     margin: 0 auto;
     place-items: center;
     overflow: hidden;
-    border-radius: var(--radius-lg);
-    background: transparent;
-    box-shadow: none;
+    border: 1px solid color-mix(in srgb, var(--color-primary-400) 48%, var(--color-border-subtle));
+    border-radius: var(--radius-md);
+    background: var(--color-surface-02);
+    box-shadow: 0 18px 38px rgb(0 0 0 / 0.24);
   }
 
   .playerArtworkFrame > img.mediaArtwork {
@@ -149,7 +152,7 @@
     height: 100%;
 
     .playerArtworkFrame {
-      width: min(50dvh, 460px);
+      width: min(42dvh, 460px);
     }
 
     .lyrics {
@@ -166,20 +169,40 @@
 
 
 .mediaDetails {
-
-  margin: var(--size-3) 0;
+  position: relative;
+  width: min(100%, 480px);
+  margin: clamp(8px, 2dvh, var(--size-4)) auto;
+  padding-inline: var(--size-7);
+  text-align: center;
 
   a {
     display: block;
-    font-size: var(--size-4);
-    font-weight: var(--font-weight-6);
-    color: inherit;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 2rem;
+    font-weight: var(--font-weight-8);
+    line-height: 1.08;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     text-decoration-color: inherit;
   }
 
+  .mediaDetails__title--marquee > span {
+    display: inline-block;
+    width: max-content;
+    min-width: 100%;
+    padding-right: 2.5rem;
+    animation: media-title-marquee 9s ease-in-out infinite;
+  }
+
   p {
-    display: inline;
-    font-size: var(--size-3);
+    display: block;
+    margin-top: var(--size-2);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-1);
+    font-weight: var(--font-weight-7);
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
 
   @media(orientation:landscape) {
@@ -188,14 +211,38 @@
 
 }
 
+@keyframes media-title-marquee {
+  0%,
+  14% {
+    transform: translateX(0);
+  }
+
+  74%,
+  86% {
+    transform: translateX(calc(-1 * var(--marquee-distance)));
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mediaDetails__title--marquee > span {
+    animation: none;
+  }
+}
+
 
 .slider {
   input {
     width: 100%;
     color: var(--text2);
+    --thumb-height: 0.95rem;
+    --track-height: 0.22rem;
   }
 
-  margin-bottom:var(--size-2);
+  margin-bottom: clamp(4px, 1.2dvh, var(--size-3));
 
   div {
     display: flex;
@@ -203,9 +250,8 @@
 
     p {
       font-size: var(--font-size-0);
-      letter-spacing: var(--font-letterspacing-2);
       font-weight: var(--font-weight-7);
-      opacity: 0.8;
+      opacity: 0.72;
     }
 
     #fullDuration {
@@ -215,20 +261,66 @@
 }
 
 .topShelf {
-  display: flex;
-  justify-content: space-between;
-
-  >p {
-    overflow: clip;
-    text-overflow: ellipsis;
-  }
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  min-height: 52px;
+  align-items: center;
+  padding: var(--size-2) clamp(var(--size-3), 5vw, var(--size-6));
 
   .right-group {
     display: flex;
     align-items: center;
     gap: var(--size-2);
-    margin-right: var(--size-4);
-    margin-top: 0;
+    justify-content: flex-end;
+  }
+
+  .playerTopButton {
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    background: transparent;
+  }
+
+  .playerTopButton:hover,
+  .playerTopButton:focus-visible {
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-primary);
+    background: var(--color-surface-02);
+  }
+
+  .playerTopButton i {
+    font-size: 1.45rem;
+  }
+
+  .playerIdentity {
+    display: grid;
+    gap: 2px;
+    justify-items: center;
+    color: var(--color-text-secondary);
+    line-height: 1;
+  }
+
+  .playerIdentity span {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-2);
+    font-weight: var(--font-weight-8);
+    letter-spacing: 0;
+  }
+
+  .playerIdentity span i {
+    color: var(--color-primary-300);
+  }
+
+  .playerIdentity small {
+    font-size: 0.62rem;
+    font-weight: var(--font-weight-7);
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
 
 
@@ -238,21 +330,31 @@
 .mainShelf {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: var(--size-2);
+  padding: 0 var(--size-1);
 
-  :first-child {
+  > :first-child {
     animation: var(--animation-slide-in-down) forwards;
   }
 
-  :last-child {
+  > :last-child {
     animation: var(--animation-slide-in-up) forwards;
 
   }
 
   button {
-    opacity: 0.9;
-    font-size: var(--font-size-4) !important;
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    padding: 0;
+    opacity: 1;
+    color: var(--color-text-primary);
+    font-size: 1.7rem !important;
     font-weight: var(--font-weight-1) !important;
     flex: 0 0 auto;
+    border-radius: 50%;
   }
 
   button.is-disabled,
@@ -262,22 +364,55 @@
   }
 
   #playButton {
-    transform: scale(1.5);
+    width: 76px;
+    height: 76px;
+    color: var(--color-primary-200);
+    border: 2px solid var(--color-primary-400);
+    background: color-mix(in srgb, var(--color-primary-600) 18%, transparent);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary-700) 35%, transparent);
+    transform: none;
+  }
+
+  #playButton i {
+    padding: 0;
+    opacity: 1;
+    font-size: 2.45rem;
+    line-height: 1;
+  }
+
+  #playButton .loading-spinner {
+    display: inline-block;
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  #playButton:hover,
+  #playButton:focus-visible {
+    color: white;
+    border-color: var(--color-primary-300);
+    background: color-mix(in srgb, var(--color-primary-500) 28%, transparent);
   }
 
 }
 
 .bottomShelf {
   display: flex;
+  min-height: 48px;
+  align-items: center;
   justify-content: space-between;
-  margin-top: var(--size-5);
-  margin-bottom: var(--size-9);
+  gap: var(--size-2);
+  margin-top: clamp(6px, 1.5dvh, var(--size-4));
+  margin-bottom: 0;
+  padding: var(--size-2) var(--size-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-01);
 
   i {
     font-size: var(--font-size-2) !important;
-    padding: 0 var(--size-2);
-    border-radius: var(--roundness);
-    opacity: 0.7;
+    padding: var(--size-1);
+    border-radius: 50%;
+    opacity: 0.78;
     font-weight: var(--font-weight-6);
   }
 
@@ -290,7 +425,7 @@
     appearance: none;
     opacity: 0.5;
     font-size: var(--font-size-0);
-    letter-spacing: var(--font-letterspacing-2);
+    letter-spacing: 0;
     font-weight: var(--font-weight-6);
   }
 
@@ -313,6 +448,112 @@
       padding: 0;
       opacity: 0.75;
     }
+  }
+
+  .playerLoopButton {
+    display: inline-grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--color-text-secondary);
+    background: transparent;
+  }
+
+  .playerLoopButton:hover,
+  .playerLoopButton:focus-visible,
+  .playerLoopButton.on {
+    color: var(--color-primary-200);
+    background: color-mix(in srgb, var(--color-primary-500) 20%, transparent);
+  }
+
+  .playerLoopButton i {
+    padding: 0;
+    opacity: 1;
+  }
+
+  .playerLoopButton.on {
+    position: relative;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary-300) 42%, transparent);
+  }
+
+  .playerLoopButton[data-loop-mode="queue"]::after {
+    content: "ALL";
+  }
+
+  .playerLoopButton[data-loop-mode="track"]::after {
+    content: "1";
+  }
+
+  .playerLoopButton.on::after {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    min-width: 13px;
+    padding: 1px 2px;
+    border-radius: 4px;
+    color: var(--color-bg-base);
+    background: var(--color-primary-200);
+    font-size: 0.5rem;
+    font-weight: var(--font-weight-8);
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 460px) {
+  #playerSection article {
+    padding-inline: var(--size-3);
+  }
+
+  .mediaDetails {
+    margin-top: var(--size-4);
+    padding-inline: var(--size-4);
+  }
+
+  .mediaDetails a {
+    font-size: 1.5rem;
+  }
+
+  .mainShelf button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.45rem !important;
+  }
+
+  .mainShelf #playButton {
+    width: 66px;
+    height: 66px;
+  }
+
+  .mainShelf #playButton i {
+    font-size: 2.15rem;
+  }
+
+  .bottomShelf {
+    gap: var(--size-1);
+    padding-inline: var(--size-2);
+  }
+
+  #playerSection article {
+    padding-block: 6px;
+  }
+
+  #playerSection article .playerArtworkFrame {
+    width: min(100%, 34dvh, 320px);
+  }
+
+  .bottomShelf {
+    min-height: 40px;
+    padding: 4px var(--size-2);
+  }
+
+  .bottomShelf #volumeChanger {
+    width: 62px;
+  }
+
+  .bottomShelf .volumeControl {
+    min-width: 92px;
   }
 }
 
@@ -363,3 +604,23 @@
     opacity: 0.5;
   }
 }
+
+/* Now playing */
+#playerSection { background: #232131; }
+#playerSection div.bg-pane { background: rgb(28 26 41 / 88%); backdrop-filter: blur(28px); }
+#playerSection article .playerArtworkFrame {
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgb(0 0 0 / 32%);
+}
+#playerSection .mediaDetails a { font-weight: 650; letter-spacing: -0.035em; }
+#playerSection .mediaDetails p { color: var(--color-text-tertiary); font-weight: 400; text-transform: none; }
+#playerSection .mainShelf #playButton {
+  border: 0;
+  background: var(--color-text-primary);
+  color: var(--color-bg-base);
+  box-shadow: none;
+}
+#playerSection .mainShelf #playButton:hover,
+#playerSection .mainShelf #playButton:focus-visible { background: var(--color-primary-300); color: var(--color-bg-base); }
+#playerSection .bottomShelf { background: transparent; border-color: rgb(255 255 255 / 7%); }

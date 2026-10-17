@@ -169,6 +169,14 @@ footer {
       display: block;
     }
 
+    a.mediaDetails__title--marquee > span {
+      display: inline-block;
+      min-width: 100%;
+      width: max-content;
+      padding-right: 2rem;
+      animation: media-title-marquee 9s ease-in-out infinite;
+    }
+
     a,
     p {
       white-space: nowrap;

@@ -6,6 +6,7 @@ Only public client configuration should use the `VITE_*` prefix.
 
 - `VITE_APP_NAME`: display name for the app.
 - `VITE_STREAM_API_BASE`: public API base used by the web stream provider. Defaults to `/api`.
+- `VITE_LOUDARA_API_URL`: absolute HTTPS URL of the deployed API. Native Android and desktop builds prefer it so stream resolution and media proxying happen outside the device. It may be the same deployed Worker URL as `VITE_STREAM_API_BASE`.
 - `VITE_ENABLE_STREAM_DEBUG`: optional development flag for stream diagnostics.
 
 ## Private Variables
@@ -39,3 +40,5 @@ pnpm dlx wrangler secret put YOUTUBE_PO_TOKEN
 ```
 
 `YOUTUBE_PO_TOKEN` without `YOUTUBE_VISITOR_DATA` is rejected as an invalid configuration. Tokens and cookies can expire or be revoked by YouTube, so they must be replaceable without rebuilding the frontend.
+
+The web Settings screen can also store the same three values for the current browser tab. Those values are kept in `sessionStorage` and sent to the internal stream API as `X-Loudara-Youtube-*` headers, so they are useful for local testing or a personal deployment without changing Worker secrets. Responses resolved with device-supplied values are private and return a short-lived signed media URL directly, because the audio player cannot safely replay those credentials. Native Android and desktop builds use the same values for their direct fallback resolver; the deployed API remains the preferred route when `VITE_LOUDARA_API_URL` is configured.

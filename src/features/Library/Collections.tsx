@@ -1,5 +1,5 @@
 import { createSignal, For, Show, createMemo } from "solid-js";
-import { ensureReservedCollections, fetchCollection, getCollectionsKeys, getTracksMap, hasLegacyLibrary, drawer, isImportedPlaylist } from "@utils";
+import { ensureReservedCollections, fetchCollection, generateImageUrl, getCollectionsKeys, getImportedPlaylistSources, getTracksMap, hasLegacyLibrary, drawer, isImportedPlaylist } from "@utils";
 import { t, setListStore, setNavStore } from "@stores";
 import StreamItem from "@components/StreamItem";
 
@@ -18,6 +18,8 @@ export default function() {
   };
 
   const tracksMap = createMemo(() => getTracksMap());
+  const importedPlaylists = createMemo(() => Object.entries(getImportedPlaylistSources()));
+  const collectionKeys = createMemo(() => getCollectionsKeys().filter(name => !isImportedPlaylist(name)));
 
   let debounceTimer: NodeJS.Timeout;
   const handleInput = () => {
@@ -72,6 +74,7 @@ export default function() {
               author={item.author}
               duration={item.duration}
               authorId={item.authorId}
+              img={item.img}
               type="video"
               context={{
                 src: 'search',
@@ -85,12 +88,12 @@ export default function() {
         </Show>
       </Show>
       <Show when={!searchText()}>
-        <Show when={getCollectionsKeys().length} fallback={t('library_empty')}>
+        <Show when={collectionKeys().length} fallback={t('library_empty')}>
           <p class="library-section-label">
             <i class="ri-play-list-2-fill"></i>
             {t('library_collections')}
           </p>
-          <For each={getCollectionsKeys()}>
+          <For each={collectionKeys()}>
             {(item) => (
               <a
                 href={'?collection=' + item}
@@ -111,6 +114,36 @@ export default function() {
             )}
 
           </For>
+        </Show>
+        <Show when={importedPlaylists().length > 0}>
+          <section class="library-imported-playlists" aria-label={t('library_playlists')}>
+            <p class="library-section-label">
+              <i class="ri-play-list-2-fill"></i>
+              {t('library_playlists')}
+            </p>
+            <div class="library-imported-playlists__list">
+              <For each={importedPlaylists()}>
+                {([title, source]) => (
+                  <button
+                    type="button"
+                    class="library-imported-playlist"
+                    onClick={() => fetchCollection(title)}
+                  >
+                    <img
+                      src={generateImageUrl(source.img || '', '720')}
+                      alt=""
+                      onError={event => { event.currentTarget.src = '/logo192.png'; }}
+                    />
+                    <span>
+                      <strong>{title}</strong>
+                      <small>{source.author || source.sourceName}</small>
+                    </span>
+                    <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                  </button>
+                )}
+              </For>
+            </div>
+          </section>
         </Show>
         <a
           class='clxn_item'

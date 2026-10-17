@@ -1,6 +1,6 @@
-import { Accessor, Show, createSignal } from 'solid-js';
+import { Accessor, Show, createEffect, createMemo, createSignal, on } from 'solid-js';
 import './StreamItem.css';
-import { config, hostResolver, player, getCollectionItems, generateImageUrl, createFallbackArtworkUrl } from '@utils';
+import { config, hostResolver, player, getCollectionItems, getArtworkCandidates } from '@utils';
 import { setStore, queueStore, setQueueStore, listStore, navStore, setNavStore, playerStore, setPlayerStore } from '@stores';
 
 export default function(data: YTItem & {
@@ -18,70 +18,26 @@ export default function(data: YTItem & {
   removeMode?: boolean
 }) {
 
-  const [getImage, setImage] = createSignal('');
+  const isAlbum = data.context?.src === 'album' || data.context?.id.startsWith('MPREb');
+  const imageSources = createMemo(() => getArtworkCandidates(
+    isAlbum ? (listStore.img || data.img) : data.img,
+    data.id,
+    data.title || data.author || 'L'
+  ));
+  const [imageIndex, setImageIndex] = createSignal(0);
+  const getImage = () => imageSources()[imageIndex()] || '';
 
-  let parent!: HTMLAnchorElement;
+  createEffect(on(imageSources, () => setImageIndex(0), { defer: true }));
 
-  function setFallbackImage() {
-    setImage(createFallbackArtworkUrl(data.title || data.author || 'L'));
+  function tryNextImage() {
+    setImageIndex(index => Math.min(index + 1, imageSources().length - 1));
   }
-
 
   function handleThumbnailLoad(e: Event) {
     const img = e.target as HTMLImageElement;
-    const src = getImage();
-    const isGeneratedVideoThumbnail =
-      src.includes('i.ytimg.com/vi/') ||
-      src.includes('i.ytimg.com/vi_webp/') ||
-      src.includes('/vi/') ||
-      src.includes('/vi_webp/');
-
-    if (!isGeneratedVideoThumbnail) {
-      parent.classList.remove('ravel');
-      return;
-    }
-
-    if (img.naturalWidth !== 120) {
-      parent.classList.remove('ravel');
-      return;
-    }
-
-    if (src.includes('webp')) {
-      setImage(src.replace('.webp', '.jpg').replace('vi_webp', 'vi'));
-      return;
-    }
-
-    setFallbackImage();
-    parent.classList.remove('ravel');
+    if (/i\.ytimg\.com\/vi(?:_webp)?\//.test(getImage()) && img.naturalWidth === 120)
+      tryNextImage();
   }
-
-  function handleThumbnailError() {
-
-    const src = getImage();
-
-    if (isAlbum && listStore.img) {
-      const albumCover = generateImageUrl(listStore.img, '');
-      setImage(src === albumCover ? '' : albumCover);
-    } else {
-      setImage(
-        src.includes('vi_webp') ?
-          src.replace('.webp', '.jpg').replace('vi_webp', 'vi') :
-          createFallbackArtworkUrl(data.title || data.author || 'L')
-      );
-    }
-
-    parent.classList.remove('ravel');
-  }
-
-
-
-  const isAlbum = data.context?.src === 'album' || data.context?.id.startsWith('MPREb');
-  const isFromArtist = data.context?.id?.startsWith('Artist - ');
-  const isMusic = data.author?.endsWith('- Topic');
-  const imageSource = () => isAlbum ? (listStore.img || data.img || data.id) : (data.img || data.id);
-
-  if (config.loadImage)
-    setImage(generateImageUrl(imageSource(), isAlbum ? '' : 'mq', data.context?.id === 'favorites' || isFromArtist || ((data.context?.src === 'queue') && isMusic)));
 
   function openActionsMenu(trigger: HTMLElement) {
     const rect = trigger.getBoundingClientRect();
@@ -124,12 +80,10 @@ export default function(data: YTItem & {
     <a
       class='streamItem card card--interactive'
       classList={{
-        'ravel': config.loadImage,
         'marked': data.mark?.get(data.id),
         'delete': data.removeMode
       }}
       href={hostResolver('/watch?v=' + data.id)}
-      ref={parent}
       onclick={(e) => {
         e.preventDefault();
 
@@ -185,14 +139,10 @@ export default function(data: YTItem & {
         });
 
 
-        const isPortrait = matchMedia('(orientation:portrait)').matches;
+        setNavStore('player', 'state', Boolean(config.watchMode));
 
-        if (isPortrait) {
-          setNavStore('player', 'state', Boolean(config.watchMode));
-
-          if (config.watchMode)
-            navStore.player.ref?.scrollIntoView();
-        }
+        if (config.watchMode)
+          navStore.player.ref?.scrollIntoView();
         if (!playlistPlaybackContext && config.contextualFill && !queueStore.isSession && (data.context?.src === 'collection' || (data.context?.src === 'playlists')) && data.context?.id !== 'history') {
           const collectionItems = data.context.src === 'collection' ? getCollectionItems(data.context.id) :
             listStore.list;
@@ -239,7 +189,7 @@ export default function(data: YTItem & {
       <span>
         <Show when={config.loadImage && getImage()} fallback={<i class="ri-music-2-line" aria-hidden="true"></i>}>
           <img
-            onerror={handleThumbnailError}
+            onerror={tryNextImage}
             onload={handleThumbnailLoad}
             src={getImage()}
           />

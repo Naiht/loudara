@@ -1,3 +1,4 @@
+import { reconcile } from "solid-js/store";
 import { Show, createEffect, createSignal } from 'solid-js';
 import { deleteCollection, getLists, saveLists, getCollectionItems, renameCollection, getLibraryAlbums, saveAlbumToLibrary, removeAlbumFromLibrary, player } from '@utils';
 import { listStore, resetList, setListStore, setStore, t, addToQueue, setQueueStore, setNavStore, setPlayerStore } from '@stores';
@@ -85,7 +86,7 @@ export default function Dropdown() {
 
             setQueueStore('history', []);
             setQueueStore('list', []);
-            setPlayerStore('stream', fullList[0]);
+            setPlayerStore('stream', reconcile(fullList[0]));
             addToQueue(fullList.slice(1));
             player(fullList[0].id);
 

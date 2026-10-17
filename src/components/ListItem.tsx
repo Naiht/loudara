@@ -1,19 +1,17 @@
-import { config, hostResolver, generateImageUrl } from '@utils';
+import { config, hostResolver, getArtworkCandidates } from '@utils';
 import './ListItem.css';
-import { Show, createSignal } from 'solid-js';
+import { Show, createEffect, createMemo, createSignal, on } from 'solid-js';
 import { getList, setListStore } from '@stores';
 
-export default function(data: YTListItem) {
+export default function(data: YTListItem & { rowSubtitle?: string }) {
 
-  const [getThumbnail, setThumbnail] = createSignal(generateImageUrl(data.img, ''));
-  let img!: HTMLImageElement;
+  const sources = createMemo(() => getArtworkCandidates(data.img, undefined, data.name));
+  const [imageIndex, setImageIndex] = createSignal(0);
+  const getThumbnail = () => sources()[imageIndex()] || '';
+  createEffect(on(sources, () => setImageIndex(0), { defer: true }));
 
-  function unravel() {
-    img.parentElement!.classList.remove('ravel');
-  }
   function handleError() {
-    unravel();
-    setThumbnail('/logo192.png');
+    setImageIndex(index => Math.min(index + 1, sources().length - 1));
   }
 
   const url = `/${data.type}/${data.id}`;
@@ -22,7 +20,7 @@ export default function(data: YTListItem) {
 
   return (
     <a
-      class={'listItem card card--interactive ' + (config.loadImage ? 'ravel' : '')}
+      class="listItem listItem--row card card--interactive"
       href={hostResolver(url)}
       onclick={(e) => {
         e.preventDefault();
@@ -30,19 +28,16 @@ export default function(data: YTListItem) {
         getList(data.id, data.type);
       }}
     >
-      <Show when={config.loadImage}>
-        <img
-          ref={img}
-          src={getThumbnail()}
-          onError={handleError}
-          onLoad={unravel}
-        />
-      </Show>
-      <div>
+      <span class="listItem__art">
+        <Show when={config.loadImage} fallback={<i class="ri-album-line" aria-hidden="true" />}>
+          <img src={getThumbnail()} onError={handleError} alt="" />
+        </Show>
+      </span>
+      <div class="listItem__metadata">
         <p class="title truncate">{data.name}</p>
-        <p class="uData truncate">{uploaderData}</p>
-        <p class="stats truncate">{stats}</p>
+        <p class="uData truncate">{data.rowSubtitle || [uploaderData, stats].filter(Boolean).join(' • ')}</p>
       </div>
+      <i class="ri-arrow-right-s-line listItem__arrow" aria-hidden="true" />
     </a >
   );
 }

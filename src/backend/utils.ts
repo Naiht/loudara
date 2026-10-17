@@ -78,7 +78,9 @@ export function parsePublished(text: string): number {
 
 export function getThumbnail(thumbnails: { url: string, width: number }[]): string {
   if (!thumbnails || thumbnails.length === 0) return '';
-  return thumbnails.sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || '';
+  return thumbnails.reduce((largest, thumbnail) =>
+    (thumbnail.width || 0) > (largest.width || 0) ? thumbnail : largest
+  ).url || '';
 }
 
 export function normalizeThumbnailUrl(url?: string): string {
@@ -111,6 +113,7 @@ export function streamMapper(node: Helpers.YTNode): YTItem | null {
       author: video.author?.name || "Unknown",
       authorId: video.author?.id || "",
       duration: formatDuration(video.duration?.text?.toString()),
+      img: normalizeThumbnailUrl(getThumbnail(video.thumbnails || [])),
       subtext,
       type: 'video'
     };
@@ -179,7 +182,7 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
       id: playlist.id,
       name: playlist.title?.toString() || "Unknown",
       videoCount: playlist.video_count?.toString() || "0 videos",
-      img: '/' + getThumbnailId(playlist.thumbnails?.[0]?.url),
+      img: normalizeThumbnailUrl(getThumbnail(playlist.thumbnails || [])),
       type: 'playlist'
     };
   }
@@ -201,7 +204,7 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
       id: channel.id,
       name: channel.author?.name || "Unknown",
       subscribers: subscribers || "0 subscribers",
-      img: '/' + getThumbnailId(channel.author?.thumbnails?.[0]?.url),
+      img: normalizeThumbnailUrl(getThumbnail(channel.author?.thumbnails || [])),
       description: description,
       videoCount: videoCount,
       type: 'channel'
@@ -220,7 +223,7 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
         id: item.id || "",
         name: item.name || "Unknown",
         subscribers: subscribers,
-        img: '/' + getThumbnailId(item.thumbnail?.contents?.[0]?.url),
+        img: normalizeThumbnailUrl(getThumbnail(item.thumbnail?.contents || [])),
         type: 'artist'
       };
     }
@@ -240,7 +243,7 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
         playlistId: pId,
         author: artistName,
         year: item.year || item.subtitle?.runs?.find((r: any) => r.text && /^\d{4}$/.test(r.text))?.text || "",
-        img: '/' + getThumbnailId(item.thumbnail?.contents?.[0]?.url),
+        img: normalizeThumbnailUrl(getThumbnail(item.thumbnail?.contents || [])),
         type: 'album'
       };
     }

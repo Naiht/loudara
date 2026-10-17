@@ -1,6 +1,6 @@
-import { createMemo, createSignal, For, onMount, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, on, onMount, Show } from 'solid-js';
 import { navStore, playerStore, setNavStore, setPlayerStore, setQueueStore, store, t } from '@stores';
-import { config, drawer, generateImageUrl, getCollection, getTracksMap, player } from '@utils';
+import { config, drawer, getArtworkCandidates, getCollection, getTracksMap, player } from '@utils';
 import { getEmbeddedTrending, hasEmbeddedBackend } from '@platform/embedded';
 
 type ShelfTrack = TrackItem & {
@@ -9,6 +9,20 @@ type ShelfTrack = TrackItem & {
   type?: 'video' | 'song';
   subtext?: string;
 };
+
+function ShelfArtwork(props: { item: ShelfTrack }) {
+  const sources = createMemo(() => getArtworkCandidates(props.item.img, props.item.id, props.item.title));
+  const [index, setIndex] = createSignal(0);
+  createEffect(on(sources, () => setIndex(0), { defer: true }));
+  const next = () => setIndex(value => Math.min(value + 1, sources().length - 1));
+  return (
+    <Show when={config.loadImage} fallback={<i class="ri-music-2-line" aria-hidden="true" />}>
+      <img src={sources()[index()]} alt="" onError={next} onLoad={e => {
+        if (/i\.ytimg\.com\/vi(?:_webp)?\//.test(e.currentTarget.src) && e.currentTarget.naturalWidth === 120) next();
+      }} />
+    </Show>
+  );
+}
 
 export default function Trending() {
   const [items, setItems] = createSignal<(YTItem | YTListItem)[]>([]);
@@ -29,7 +43,7 @@ export default function Trending() {
       seen.add(id);
       recentPool.push({
         ...tracksMap[id],
-        img: id,
+        img: tracksMap[id].img || id,
         type: 'video',
         recency: index,
         plays: drawer.libraryPlays[id] || 1
@@ -77,13 +91,10 @@ export default function Trending() {
       id: shelfId
     });
 
-    const isPortrait = matchMedia('(orientation:portrait)').matches;
-    if (isPortrait) {
-      setNavStore('player', 'state', Boolean(config.watchMode));
+    setNavStore('player', 'state', Boolean(config.watchMode));
 
-      if (config.watchMode) {
-        navStore.player.ref?.scrollIntoView();
-      }
+    if (config.watchMode) {
+      navStore.player.ref?.scrollIntoView();
     }
 
     player(item.id);
@@ -109,6 +120,7 @@ export default function Trending() {
   return (
     <div class="trending-view">
       <header class="trending-view__header">
+        <span class="trending-view__eyebrow">Loudara / {t('nav_search')}</span>
         <p>{t('search_home_title')}</p>
         <span>{t('search_home_subtitle')}</span>
       </header>
@@ -130,7 +142,7 @@ export default function Trending() {
                     onClick={() => playFromShelf(item, recentItems(), 'recent-blend')}
                   >
                     <span class="trending-track-card__art">
-                      <img src={generateImageUrl(item.img || item.id, 'mq')} alt="" />
+                      <ShelfArtwork item={item} />
                     </span>
                     <span class="trending-track-card__meta">
                       <strong>{item.title}</strong>
@@ -159,7 +171,7 @@ export default function Trending() {
                     onClick={() => playFromShelf(item, trendTracks(), 'trending')}
                   >
                     <span class="trending-track-card__art">
-                      <img src={generateImageUrl(item.img || item.id, 'mq')} alt="" />
+                      <ShelfArtwork item={item} />
                     </span>
                     <span class="trending-track-card__meta">
                       <strong>{item.title}</strong>

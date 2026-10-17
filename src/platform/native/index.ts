@@ -1,7 +1,9 @@
 import { Capacitor } from '@capacitor/core';
 import type { StreamData } from '@core/streaming';
+import type { StreamingCredentials } from '../contracts';
 import { requestNativePlaybackPermissions } from './playback';
 import { ApiStreamProvider } from '../web/streaming/ApiStreamProvider';
+import { webStreamingCredentials } from '../web/streamingCredentials';
 
 type SearchResultPage = {
   items: (YTItem | YTListItem)[];
@@ -37,7 +39,10 @@ function isThrottleLikeMessage(message: string) {
 }
 
 function getRemoteApiBase() {
-  const value = import.meta.env.VITE_LOUDARA_API_URL?.trim();
+  const value = (
+    import.meta.env.VITE_LOUDARA_API_URL
+    || import.meta.env.VITE_STREAM_API_BASE
+  )?.trim();
   if (!value || !/^https?:\/\//i.test(value)) return undefined;
   return value;
 }
@@ -143,15 +148,22 @@ export async function getNativeSimilar(params: {
 
 export async function getNativeStreamData(videoId: string): Promise<StreamData> {
   const remoteApiBase = getRemoteApiBase();
-  const preferRemote = Boolean(remoteApiBase && isConstrainedMobileConnection());
+  const session: StreamingCredentials = await webStreamingCredentials.get() || {
+    cookie: '',
+    visitorData: '',
+    poToken: ''
+  };
+  const hasSession = Boolean(session.cookie || session.visitorData || session.poToken);
   let lastError: unknown;
 
-  if (preferRemote && remoteApiBase) {
+  // Native WebViews and ExoPlayer do not share the browser's YouTube session. When a
+  // deployed API is configured, keep YouTube attestation and media proxying there.
+  if (remoteApiBase) {
     try {
       return await getRemoteNativeStreamData(videoId, remoteApiBase);
     } catch (error) {
       lastError = error;
-      console.warn('Remote native stream fallback failed, trying direct YouTube session', error);
+      console.warn('Remote native stream request failed, trying the device resolver', error);
     }
   }
 
@@ -161,29 +173,25 @@ export async function getNativeStreamData(videoId: string): Promise<StreamData> 
     resetYoutubeSession
   } = await import('../../backend/getYoutubeStream.js');
 
-  const maxDirectAttempts = isConstrainedMobileConnection() ? 3 : 2;
+  const maxDirectAttempts = hasSession ? 1 : (isConstrainedMobileConnection() ? 2 : 1);
 
   for (let attempt = 1; attempt <= maxDirectAttempts; attempt += 1) {
     try {
-      return await getYoutubeStream(videoId, { proxyMedia: false });
+      return await getYoutubeStream(videoId, {
+        proxyMedia: false,
+        session
+      });
     } catch (error) {
       lastError = error;
 
       const message = error instanceof Error ? error.message : String(error);
-      const shouldRetry = isYoutubeBotChallenge(error) || isThrottleLikeMessage(message);
+      // Repeating a failed attestation with the same identity is counterproductive.
+      const shouldRetry = !hasSession && !isYoutubeBotChallenge(error) && isThrottleLikeMessage(message);
 
       if (!shouldRetry || attempt === maxDirectAttempts) break;
 
       resetYoutubeSession();
       await wait(Math.min(1200 + (attempt * 900), 4_000));
-    }
-  }
-
-  if (!preferRemote && remoteApiBase) {
-    try {
-      return await getRemoteNativeStreamData(videoId, remoteApiBase);
-    } catch (error) {
-      lastError = lastError || error;
     }
   }
 

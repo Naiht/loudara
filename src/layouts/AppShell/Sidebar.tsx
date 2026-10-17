@@ -53,7 +53,7 @@ export default function Sidebar(props: SidebarProps) {
         type="button"
         onClick={props.onToggleSidebar}
       >
-        <i class={props.collapsed ? 'ri-play-list-add-fill' : 'ri-close-large-line'} aria-hidden="true" />
+        <i class="ri-side-bar-line" aria-hidden="true" />
         <span>{props.collapsed ? 'Expandir' : 'Ocultar'}</span>
       </button>
 

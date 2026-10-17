@@ -1,9 +1,10 @@
 import { playerStore, setPlayerStore, setStore } from "@stores";
-import { config, convertSStoHHMMSS } from "@utils";
+import { config, convertSStoHHMMSS, getArtworkCandidates } from "@utils";
 import { isQueuePrefetchActive } from "../modules/queuePrefetch";
 import type { StreamData } from "@core/streaming";
 import { isNativeApp } from "@platform/native";
 import { prepareNativePlaybackTrack } from "@platform/native/playback";
+import { prepareAutoRadio, resetAutoRadio } from "../modules/autoRadio";
 
 const RAPID_SWITCH_WINDOW_MS = 1_500;
 const RAPID_SWITCH_BASE_DELAY_MS = 450;
@@ -67,6 +68,8 @@ async function waitForPlaybackConfirmation(delayMs: number, signal: AbortSignal)
 
 export async function player(id?: string) {
 
+  resetAutoRadio();
+
   if (playerAbortController)
     playerAbortController.abort();
 
@@ -75,6 +78,17 @@ export async function player(id?: string) {
   const requestSignal = playerAbortController.signal;
 
   if (!id) return;
+
+  // The selected row already has artwork; do not wait for stream resolution.
+  const selectedTrack = playerStore.stream.id === id ? playerStore.stream : undefined;
+  const artworkSource = selectedTrack?.img || id;
+  const [artwork] = getArtworkCandidates(artworkSource, id, selectedTrack?.title || 'L', 'maxres');
+  setPlayerStore({
+    mediaArtwork: artwork,
+    mediaArtworkSource: artworkSource,
+    mediaArtworkTrackId: id,
+    mediaArtworkFallback: false
+  });
 
   const enforceVideo = !playerStore.isMusic && playerStore.isWatching;
   const useNativePlayback = isNativeApp && !playerStore.isWatching;
@@ -152,7 +166,7 @@ export async function player(id?: string) {
 
       setPlayerStore('volume', 1);
 
-      await prepareNativePlaybackTrack({
+      const nativeState = await prepareNativePlaybackTrack({
         id,
         url: stream.url,
         title: streamData.title || playerStore.stream.title,
@@ -161,17 +175,19 @@ export async function player(id?: string) {
         duration: streamData.duration || 0,
         position: 0,
         autoplay: true,
-        loop: playerStore.loop,
+        loop: playerStore.loop === 'track',
         playbackRate: playerStore.playbackRate,
         volume: 1
       });
       ensureActivePlaybackRequest(requestId, requestSignal);
+      prepareAutoRadio(nativeState.playbackState === 'playing');
     } else {
       const setAudioStreams = await import('../modules/setAudioStreams').then(mod => mod.default);
       ensureActivePlaybackRequest(requestId, requestSignal);
 
       await setAudioStreams(streamData.streams);
       ensureActivePlaybackRequest(requestId, requestSignal);
+      prepareAutoRadio(!playerStore.audio.paused && playerStore.audio.readyState >= 2);
     }
 
     if (config.similarContent && !enforceVideo && !isQueuePrefetchActive() && requestId === activePlaybackRequestId)

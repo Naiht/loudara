@@ -1,80 +1,55 @@
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createEffect, createSignal, on, onCleanup } from "solid-js";
 import { setPlayerStore, playerStore } from "@stores";
-import { createFallbackArtworkUrl } from "@utils";
+import { getArtworkCandidates } from "@utils";
 
 export default function() {
-
   let imgRef!: HTMLImageElement;
   const [isWideArtwork, setIsWideArtwork] = createSignal(false);
   let retryTimeout: number | undefined;
   let lastRetriedSource = '';
 
-  function getFallbackArtwork() {
-    return createFallbackArtworkUrl(playerStore.stream.title || playerStore.stream.author || 'L');
-  }
-
-  function getRecoveryArtwork(src: string) {
-    return src
-      .replace('maxres', 'mq')
-      .replace('.webp', '.jpg')
-      .replace('vi_webp', 'vi');
-  }
-
-  function isGeneratedVideoThumbnail(src: string) {
-    return (
-      src.includes('i.ytimg.com/vi/') ||
-      src.includes('i.ytimg.com/vi_webp/') ||
-      src.includes('/vi/') ||
-      src.includes('/vi_webp/')
+  function artworkCandidates() {
+    return getArtworkCandidates(
+      playerStore.mediaArtworkSource,
+      playerStore.mediaArtworkTrackId,
+      playerStore.stream.title || playerStore.stream.author || 'L',
+      'maxres'
     );
   }
 
   function recoverArtwork() {
-    const nextSource = getRecoveryArtwork(imgRef.src);
-
-    if (nextSource !== imgRef.src) {
-      setPlayerStore({
-        mediaArtwork: nextSource,
-        mediaArtworkFallback: false
-      });
-      return;
-    }
+    const candidates = artworkCandidates();
+    const currentIndex = candidates.indexOf(playerStore.mediaArtwork);
+    const nextIndex = Math.min(currentIndex + 1, candidates.length - 1);
+    const nextSource = candidates[nextIndex];
+    if (!nextSource || nextSource === playerStore.mediaArtwork) return;
 
     setPlayerStore({
-      mediaArtwork: getFallbackArtwork(),
-      mediaArtworkFallback: true
+      mediaArtwork: nextSource,
+      mediaArtworkFallback: nextIndex === candidates.length - 1
     });
-    setIsWideArtwork(false);
   }
 
-  function updateArtworkShape() {
-    const ratio = imgRef.naturalHeight ? imgRef.naturalWidth / imgRef.naturalHeight : 1;
-    setIsWideArtwork(ratio > 1.2);
-  }
+  createEffect(on([() => playerStore.mediaArtworkSource, () => playerStore.mediaArtworkTrackId], () => {
+    window.clearTimeout(retryTimeout);
+    lastRetriedSource = '';
+  }));
 
   createEffect(() => {
     const source = playerStore.mediaArtworkSource;
-
-    if (source !== lastRetriedSource && source !== playerStore.mediaArtwork)
-      lastRetriedSource = '';
-
-    if (!playerStore.mediaArtworkFallback || !source || !playerStore.stream.id)
-      return;
-
-    if (playerStore.playbackState !== 'playing' && playerStore.playbackState !== 'paused')
-      return;
-
-    if (lastRetriedSource === source)
-      return;
+    if (!playerStore.mediaArtworkFallback || !source || !playerStore.stream.id) return;
+    if (playerStore.playbackState !== 'playing' && playerStore.playbackState !== 'paused') return;
+    if (lastRetriedSource === source) return;
 
     window.clearTimeout(retryTimeout);
     retryTimeout = window.setTimeout(() => {
       lastRetriedSource = source;
       setPlayerStore({
-        mediaArtwork: source,
+        mediaArtwork: artworkCandidates()[0],
         mediaArtworkFallback: false
       });
     }, 1500);
+    onCleanup(() => window.clearTimeout(retryTimeout));
   });
 
   onCleanup(() => window.clearTimeout(retryTimeout));
@@ -93,17 +68,12 @@ export default function() {
           setPlayerStore('isWatching', !playerStore.isWatching);
       }}
       onload={() => {
-        updateArtworkShape();
-        if (isGeneratedVideoThumbnail(imgRef.src) && imgRef.naturalWidth === 120) {
+        const ratio = imgRef.naturalHeight ? imgRef.naturalWidth / imgRef.naturalHeight : 1;
+        setIsWideArtwork(ratio > 1.2);
+        if (/i\.ytimg\.com\/vi(?:_webp)?\//.test(imgRef.src) && imgRef.naturalWidth === 120)
           recoverArtwork();
-          return;
-        }
-
-        setPlayerStore('mediaArtworkFallback', false);
       }}
-      onerror={() => {
-        recoverArtwork();
-      }}
+      onerror={recoverArtwork}
     />
   )
 }

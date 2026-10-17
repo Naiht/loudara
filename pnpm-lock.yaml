@@ -88,8 +88,8 @@ importers:
         specifier: ^2.11.12
         version: 2.11.12(solid-js@1.9.13)(vite@8.0.16(@types/node@25.9.5)(esbuild@0.28.1)(terser@5.49.0))
       youtubei.js:
-        specifier: 17.0.1
-        version: 17.0.1
+        specifier: 17.2.0
+        version: 17.2.0
 
 packages:
 
@@ -1730,6 +1730,9 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
   filelist@1.0.6:
     resolution: {integrity: sha512-5giy2PkLYY1cP39p17Ech+2xlpTRL9HLspOfEgm0L6CwBXBTgsK5ou0JtzYuepxkaQ/tvhCFIJ5uXo0OrM2DxA==}
 
@@ -2827,8 +2830,8 @@ packages:
   yauzl@2.10.0:
     resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
 
-  youtubei.js@17.0.1:
-    resolution: {integrity: sha512-1lO4b8UqMDzE0oh2qEGzbBOd4UYRdxn/4PdpRM7BGTHxM6ddsEsKZTu90jp8V9FHVgC2h1UirQyqoqLiKwl+Zg==}
+  youtubei.js@17.2.0:
+    resolution: {integrity: sha512-XLNsgRKO1h7t4i9tIMWSQSeWdD7Ujkk5v1m5YCaumaHMhu/xuLqtO3M0Hq7CXNup9HlJ1NGrT1Y+HLIHnL6Ujg==}
 
 snapshots:
 
@@ -4566,6 +4569,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fflate@0.8.3: {}
+
   filelist@1.0.6:
     dependencies:
       minimatch: 5.1.9
@@ -5775,7 +5780,8 @@ snapshots:
       buffer-crc32: 0.2.13
       fd-slicer: 1.1.0
 
-  youtubei.js@17.0.1:
+  youtubei.js@17.2.0:
     dependencies:
       '@bufbuild/protobuf': 2.12.1
+      fflate: 0.8.3
       meriyah: 6.1.4

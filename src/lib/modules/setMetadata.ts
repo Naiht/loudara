@@ -1,13 +1,6 @@
 import { playerStore, setPlayerStore } from "@stores";
-import { config, createFallbackArtworkUrl, generateImageUrl } from "@utils";
-
-function getArtworkUrl(data: TrackItem, music: boolean) {
-  if (data.img?.startsWith('/')) {
-    return generateImageUrl(data.img, '720', music);
-  }
-
-  return generateImageUrl(data.img || data.id, 'maxres', music);
-}
+import { config, createFallbackArtworkUrl, getArtworkCandidates } from "@utils";
+import { isNativeApp } from "@platform/native";
 
 export default async function(data: TrackItem) {
 
@@ -30,13 +23,17 @@ export default async function(data: TrackItem) {
     album: playerStore.context.src
   };
 
-  const img = getArtworkUrl(data, music);
+  const artworkSource = data.img || data.id;
+  const [img] = getArtworkCandidates(artworkSource, data.id, data.title, 'maxres');
   if (config.loadImage) {
-    setPlayerStore({
-      mediaArtwork: img,
-      mediaArtworkSource: img,
-      mediaArtworkFallback: false
-    });
+    if (playerStore.mediaArtworkSource !== artworkSource || playerStore.mediaArtworkTrackId !== data.id) {
+      setPlayerStore({
+        mediaArtwork: img,
+        mediaArtworkSource: artworkSource,
+        mediaArtworkTrackId: data.id,
+        mediaArtworkFallback: false
+      });
+    }
 
     metadataObj.artwork = [
       { src: img, sizes: '96x96' },
@@ -51,6 +48,7 @@ export default async function(data: TrackItem) {
     setPlayerStore({
       mediaArtwork: createFallbackArtworkUrl(data.title),
       mediaArtworkSource: '',
+      mediaArtworkTrackId: data.id,
       mediaArtworkFallback: false
     });
   }
@@ -59,10 +57,16 @@ export default async function(data: TrackItem) {
 
 
   if ('mediaSession' in navigator) {
-    import('@modules/mediaSession').then(m => {
-      m.updateMediaSessionPosition();
-      navigator.mediaSession.metadata = new MediaMetadata(metadataObj);
-    });
+    if (isNativeApp && !playerStore.isWatching) {
+      navigator.mediaSession.playbackState = 'none';
+      navigator.mediaSession.metadata = null;
+    } else {
+      import('@modules/mediaSession').then(m => {
+        if (playerStore.stream.id !== data.id || (isNativeApp && !playerStore.isWatching)) return;
+        m.updateMediaSessionPosition();
+        navigator.mediaSession.metadata = new MediaMetadata(metadataObj);
+      });
+    }
   }
 
 }

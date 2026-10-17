@@ -154,3 +154,28 @@
 #queuelist>a {
 	transition: initial;
 }
+
+/* Compact rows echo the album and queue lists in the player. */
+.streamItem {
+  min-height: 76px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-bottom-color: rgb(255 255 255 / 5%);
+  border-radius: 8px;
+  background: transparent;
+}
+.streamItem:hover { border-color: transparent; background: var(--color-surface-01); color: var(--color-text-primary); }
+.streamItem span {
+  flex-basis: 58px;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--color-surface-02);
+}
+.streamItem div.metadata { justify-content: center; gap: 4px; }
+.streamItem div.metadata .title { font-size: 0.93rem; font-weight: 600; letter-spacing: 0; }
+.streamItem div.metadata .avu { height: auto; }
+.streamItem div.metadata .avu p { color: var(--color-text-tertiary); font-size: 0.8rem; letter-spacing: 0; }
+.streamItem__duration { font-weight: 400 !important; }

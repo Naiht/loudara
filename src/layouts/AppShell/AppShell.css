@@ -384,6 +384,20 @@
   margin-inline: auto;
 }
 
+.app-main:has(#playerSection) .app-main__scroller {
+  overflow: hidden;
+  padding: 0;
+}
+
+.app-main:has(.library) .app-main__scroller {
+  overflow: hidden;
+}
+
+.app-main__scroller > .library {
+  height: 100%;
+  min-height: 0;
+}
+
 .app-player-bar {
   position: fixed;
   left: var(--app-sidebar-current-width);
@@ -436,6 +450,20 @@
   .app-header {
     grid-column: 1;
     padding-inline: var(--space-3);
+  }
+
+  .app-header:has(.superInput:focus) {
+    gap: 0;
+  }
+
+  .app-header:has(.superInput:focus) .app-header__logo-slot,
+  .app-header:has(.superInput:focus) .app-header__actions {
+    display: none;
+  }
+
+  .app-header:has(.superInput:focus) .app-header__search {
+    max-width: none;
+    flex-basis: 100%;
   }
 
   .app-sidebar {
@@ -565,4 +593,138 @@
   .app-header__search .searchFilters {
     max-width: 92px;
   }
+}
+
+/* A quieter shell lets the artwork and music lead. */
+.app-shell {
+  background: var(--color-bg-base);
+}
+
+.app-header {
+  gap: clamp(20px, 3vw, 44px);
+  padding-inline: 28px;
+  border-color: rgb(255 255 255 / 5%);
+  background: var(--color-bg-sidebar);
+}
+
+.app-header__logo-slot {
+  display: flex;
+  width: calc(var(--sidebar-width) - 28px);
+  height: auto;
+  flex: 0 0 calc(var(--sidebar-width) - 28px);
+  gap: 11px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.app-header__logo-slot img {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  filter: saturate(.5);
+}
+
+.app-header__search {
+  max-width: 560px;
+  min-height: 44px;
+  margin-right: auto;
+  border-color: transparent;
+  border-radius: 9px;
+  background: var(--color-surface-01);
+}
+
+.app-header__search:focus-within {
+  border-color: var(--color-border-strong);
+}
+
+.app-sidebar {
+  padding: 24px 16px;
+  border-color: rgb(255 255 255 / 5%);
+}
+
+.app-sidebar__toggle {
+  min-height: 38px;
+  margin-bottom: 20px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.app-sidebar__nav { gap: 5px; }
+
+.app-sidebar__item {
+  min-height: 46px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+}
+
+.app-sidebar__label { font-size: 0.9rem; font-weight: 600; }
+
+.app-sidebar__item.is-active {
+  border-color: transparent;
+  background: var(--color-surface-02);
+  color: var(--color-text-primary);
+}
+
+.app-sidebar__item.is-active > i { color: var(--color-primary-300); }
+
+.app-main {
+  background: linear-gradient(160deg, #292638 0, var(--color-bg-base) 46%);
+}
+
+.app-main__scroller {
+  padding: clamp(26px, 4vw, 52px);
+  padding-bottom: calc(var(--player-height) + 48px);
+}
+
+.app-main__scroller > section { max-width: 1400px; margin-inline: auto; }
+.app-main__scroller > #playerSection { max-width: min(920px, 100%); }
+.app-main:has(.library) .app-main__scroller { padding-bottom: 0; }
+
+.app-player-bar {
+  bottom: 20px;
+  border-color: rgb(255 255 255 / 8%);
+  border-radius: 12px;
+  background: rgb(37 35 50 / 96%);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 28%);
+}
+
+.app-player-bar .miniplayer img { border-radius: 7px; }
+.app-player-bar .miniplayer__progress-fill {
+  background: transparent;
+  border-color: var(--color-primary-400);
+}
+
+@media (max-width: 820px) {
+  .app-header { gap: 12px; padding-inline: 16px; }
+  .app-header__logo-slot { width: 36px; flex-basis: 36px; }
+  .app-header__logo-slot span { display: none; }
+  .app-header__search { min-width: 0; }
+  .app-sidebar {
+    padding: 0;
+    border-top-color: rgb(255 255 255 / 7%);
+    background: var(--color-bg-sidebar);
+  }
+  .app-sidebar__item { min-height: 72px; border-radius: 0; background: transparent; }
+  .app-sidebar__item.is-active { background: transparent; }
+  .app-main__scroller { padding: 24px 18px calc(var(--player-height) + 88px); }
+  .app-player-bar,
+  .app-shell--collapsed .app-player-bar { bottom: 82px; }
+}
+
+@media (max-width: 520px) {
+  .app-header__logo-slot { width: 34px; flex-basis: 34px; }
+  .app-header__logo-slot img { width: 34px; height: 34px; }
+  .app-main__scroller { padding-inline: 16px; }
 }

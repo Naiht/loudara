@@ -8,20 +8,63 @@ import { config } from '@utils';
 export function generateImageUrl(
   id: string,
   res: string,
-  music?: boolean
+  _music?: boolean
 ) {
   if (!id) return '';
-  if (/^https?:\/\//i.test(id)) return id;
+  if (/^https?:\/\//i.test(id)) {
+    if (!res) return id;
+
+    try {
+      const url = new URL(id);
+      const isVideoThumbnail = url.hostname === 'i.ytimg.com';
+      const isGoogleArtwork = url.hostname.endsWith('googleusercontent.com');
+
+      if (isVideoThumbnail) {
+        url.pathname = url.pathname.replace(
+          /\/(?:maxres|sd|hq|mq|default)default\.(jpg|webp)$/,
+          `/${res}default.$1`
+        );
+        return url.toString();
+      }
+
+      if (isGoogleArtwork) {
+        const sizes: Record<string, string> = {
+          mq: '180',
+          hq: '480',
+          sd: '640',
+          maxres: '1200'
+        };
+        const size = sizes[res] || res;
+        return id.replace(/=[^=]*$/, `=s${size}-c-k-c0x00ffffff-no-rj`);
+      }
+    } catch {
+      return id;
+    }
+
+    return id;
+  }
 
   let prefix = '';
   if (id.startsWith('/')) {
     prefix = `https://yt3.googleusercontent.com${id}=s${res === 'mq' ? '180' : res || '360'}-c-k-c0x00ffffff-no-rj`;
   }
   else {
-    const quality = music ? 'hq' : res;
+    const quality = res || 'hq';
     prefix = `https://i.ytimg.com/vi/${id}/${quality}default.jpg`;
   }
   return prefix;
+}
+
+// Keep the original artwork as a fallback when a resized URL cannot be served.
+export function getArtworkCandidates(source: string | undefined, videoId: string | undefined, label: string, quality = 'mq') {
+  const candidates = [
+    source ? generateImageUrl(source, quality) : '',
+    source && quality !== 'mq' ? generateImageUrl(source, 'mq') : '',
+    source ? generateImageUrl(source, '') : '',
+    videoId && /^[\w-]{11}$/.test(videoId) ? generateImageUrl(videoId, 'mq') : '',
+    createFallbackArtworkUrl(label)
+  ];
+  return [...new Set(candidates.filter(Boolean))];
 }
 
 export function createFallbackArtworkUrl(label = '') {
@@ -31,8 +74,8 @@ export function createFallbackArtworkUrl(label = '') {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
       <defs>
         <linearGradient id="loudara-artwork-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#5b3a86" />
-          <stop offset="100%" stop-color="#241532" />
+          <stop offset="0%" stop-color="#5a4659" />
+          <stop offset="100%" stop-color="#29202b" />
         </linearGradient>
       </defs>
       <rect width="320" height="320" rx="42" fill="url(#loudara-artwork-gradient)" />
@@ -40,8 +83,8 @@ export function createFallbackArtworkUrl(label = '') {
       <text
         x="160"
         y="186"
-        fill="#f4eaff"
-        font-family="Quicksand, Arial, sans-serif"
+        fill="#f4edf2"
+        font-family="Segoe UI, Arial, sans-serif"
         font-size="116"
         font-weight="700"
         text-anchor="middle"

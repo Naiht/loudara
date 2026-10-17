@@ -36,6 +36,14 @@ function getYoutubeSession(env: Env, request: Request): YoutubeSessionConfig {
   };
 }
 
+function hasRequestYoutubeSession(request: Request): boolean {
+  return Boolean(
+    request.headers.get('X-Loudara-Youtube-Cookie')
+    || request.headers.get('X-Loudara-Youtube-Po-Token')
+    || request.headers.get('X-Loudara-Youtube-Visitor-Data')
+  );
+}
+
 export default {
   async fetch(
     request: Request,
@@ -47,6 +55,7 @@ export default {
     const allowedOrigin = (origin && ALLOWED_ORIGINS.includes(origin)) ? origin : 'https://loudara.app';
     const pathname = url.pathname;
     const youtubeSession = getYoutubeSession(env, request);
+    const hasRequestSession = hasRequestYoutubeSession(request);
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigin,
@@ -167,7 +176,11 @@ export default {
 
           if (path.startsWith('stream/')) {
             const id = path.slice('stream/'.length);
-            const result = await getStream(id, youtubeSession);
+            const result = await getStream(id, youtubeSession, {
+              // The media element cannot safely replay device-supplied credentials.
+              // Its signed Google URL is therefore returned directly and never cached.
+              proxyMedia: !hasRequestSession
+            });
             if (!result.data) {
               return new Response(JSON.stringify({
                 error: 'stream_unavailable',
@@ -183,7 +196,9 @@ export default {
               headers: {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
-                'Cache-Control': 's-maxage=1800, stale-while-revalidate=300'
+                'Cache-Control': hasRequestSession
+                  ? 'private, no-store'
+                  : 's-maxage=1800, stale-while-revalidate=300'
               }
             });
           }

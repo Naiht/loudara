@@ -20,7 +20,8 @@ function isValidVideoId(videoId: string): boolean {
 
 export async function getStream(
   videoId: string,
-  session: YoutubeSessionConfig = {}
+  session: YoutubeSessionConfig = {},
+  options: { proxyMedia?: boolean } = {}
 ): Promise<StreamResult> {
   const attempts: StreamResult['attempts'] = [];
 
@@ -34,7 +35,10 @@ export async function getStream(
   }
 
   try {
-    const data = await getYoutubeStream(videoId, { session });
+    const data = await getYoutubeStream(videoId, {
+      proxyMedia: options.proxyMedia,
+      session
+    });
     return { data, attempts };
   } catch (error) {
     const isBotChallenge = isYoutubeBotChallenge(error);

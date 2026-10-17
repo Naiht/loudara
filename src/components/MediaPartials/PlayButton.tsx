@@ -5,15 +5,15 @@ import { pauseNativePlayback, playNativePlayback } from "@platform/native/playba
 export default function() {
 
   const icons = {
-    playing: 'ri-pause-circle-fill',
-    none: 'ri-stop-circle-fill',
-    paused: 'ri-play-circle-fill',
+    playing: 'ri-pause-fill',
+    none: 'ri-play-fill',
+    paused: 'ri-play-fill',
     loading: 'ri-loader-3-line loading-spinner'
   }
 
   return (
     <button
-      class={icons[playerStore.playbackState]}
+      type="button"
       id="playButton"
       onclick={async () => {
         const { stream, playbackState, audio } = playerStore;
@@ -27,6 +27,8 @@ export default function() {
           useNativePlayback ? await playNativePlayback() : audio.play();
       }}
       aria-label={t('player_play_button')}
-    ></button>
+    >
+      <i class={icons[playerStore.playbackState]} aria-hidden="true"></i>
+    </button>
   );
 }

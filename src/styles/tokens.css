@@ -1,39 +1,40 @@
 :root {
-  --color-bg-base: #100c16;
-  --color-bg-secondary: #17111f;
-  --color-bg-sidebar: #130e1b;
+  --color-bg-base: #151420;
+  --color-bg-secondary: #1c1a29;
+  --color-bg-sidebar: #181723;
 
-  --color-surface-01: #1e1728;
-  --color-surface-02: #2a2036;
-  --color-surface-03: #352844;
+  --color-surface-01: #252332;
+  --color-surface-02: #302d40;
+  --color-surface-03: #3c3850;
 
-  --color-border-subtle: #3f334f;
-  --color-border-strong: #5b4771;
+  --color-border-subtle: #403b52;
+  --color-border-strong: #625b78;
 
-  --color-text-primary: #f7f2fc;
-  --color-text-secondary: #d8cde4;
-  --color-text-tertiary: #ac9bbb;
-  --color-text-muted: #82728f;
-  --color-text-disabled: #66576f;
+  --color-text-primary: #f2f0f8;
+  --color-text-secondary: #cbc7dc;
+  --color-text-tertiary: #a5a0b9;
+  --color-text-muted: #858096;
+  --color-text-disabled: #696575;
 
-  --color-primary-300: #d1b7f5;
-  --color-primary-400: #b990ee;
-  --color-primary-500: #9265d1;
-  --color-primary-600: #754dab;
-  --color-primary-700: #5b3a88;
+  --color-primary-200: #e8e3f5;
+  --color-primary-300: #c7bce6;
+  --color-primary-400: #ad9cd6;
+  --color-primary-500: #7966a3;
+  --color-primary-600: #625184;
+  --color-primary-700: #413a58;
 
-  --color-success: #56c58f;
-  --color-warning: #d7a94a;
-  --color-error: #ea6f8a;
-  --color-info: #8da2ef;
+  --color-success: #89b49d;
+  --color-warning: #c6a774;
+  --color-error: #c47e7b;
+  --color-info: #91aab9;
 
   --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 22px;
 
-  --header-height: 64px;
-  --sidebar-width: 250px;
+  --header-height: 76px;
+  --sidebar-width: 232px;
   --player-height: 88px;
 
   --space-1: 4px;
@@ -42,15 +43,16 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
 
-  --font-family-base: "Quicksand", "Noto Sans", "Segoe UI", sans-serif;
+  --font-family-base: "Segoe UI", "Noto Sans", system-ui, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
   --font-size-lg: 1.125rem;
 
-  --shadow-focus: 0 0 0 3px #754dab;
-  --shadow-surface: 0 18px 50px #000000;
+  --shadow-focus: 0 0 0 3px var(--color-primary-500);
+  --shadow-surface: 0 18px 50px rgb(0 0 0 / 28%);
   --transition-fast: 140ms ease;
 }

@@ -41,10 +41,6 @@
   --snackbar-accent: var(--color-error);
 }
 
-.snackbar-toast--warning {
-  --snackbar-accent: var(--color-warning);
-}
-
 .snackbar-toast--info {
   --snackbar-accent: var(--color-info);
 }

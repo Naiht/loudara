@@ -118,3 +118,6 @@
     width: 100%;
   }
 }
+
+.settingsSection > div > span { min-height: 54px; padding-inline: 12px; border-bottom: 1px solid rgb(255 255 255 / 5%); }
+.settings-session { border-radius: 12px; }

@@ -9,6 +9,7 @@ export type NativePlaybackState = {
   loop: boolean;
   ended?: boolean;
   error?: string;
+  recoverableError?: boolean;
 };
 
 export type NativeTransportAction = 'previous' | 'next';

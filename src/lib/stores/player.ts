@@ -1,13 +1,17 @@
 import { createRoot } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import { navStore, params, updateParam, addToQueue, queueStore, setQueueStore, setStore, store, groupQueueByAuthor } from "@stores";
 import { config, cssVar, themer, addToCollection, player, shuffle, streamCache } from "@utils";
 import { isQueuePrefetchActive } from "@modules/queuePrefetch";
 import { getEmbeddedSimilar, hasEmbeddedBackend } from "@platform/embedded";
 import { isNativeApp } from "@platform/native";
 import { addNativePlaybackListener, addNativeTransportListener, getNativePlaybackState, type NativePlaybackState } from "@platform/native/playback";
+import { cancelAutoRadio, scheduleAutoRadio } from '@modules/autoRadio';
 
 const blankImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const NATIVE_STREAM_REFRESH_DELAY_MS = 450;
+
+export type PlaybackLoopMode = 'off' | 'queue' | 'track';
 
 type PlayerStore = {
   stream: TrackItem & { albumId?: string },
@@ -19,12 +23,13 @@ type PlayerStore = {
   currentTime: number,
   fullDuration: number,
   playbackRate: number,
-  loop: boolean,
+  loop: PlaybackLoopMode,
   volume: number,
   status: string,
   playbackState: 'none' | 'playing' | 'paused' | 'loading',
   mediaArtwork: string,
   mediaArtworkSource: string,
+  mediaArtworkTrackId: string,
   mediaArtworkFallback: boolean,
   supportsOpus: Promise<boolean>,
   data: {},
@@ -45,7 +50,7 @@ const createInitialState = (): PlayerStore => ({
   currentTime: 0,
   fullDuration: 0,
   playbackRate: 1.0,
-  loop: false,
+  loop: 'off',
   volume: isNativeApp ? 1 : parseFloat(config.volume) / 100,
   stream: {
     title: '',
@@ -56,6 +61,7 @@ const createInitialState = (): PlayerStore => ({
   },
   mediaArtwork: blankImage,
   mediaArtworkSource: '',
+  mediaArtworkTrackId: '',
   mediaArtworkFallback: false,
   supportsOpus: navigator.mediaCapabilities.decodingInfo({
     type: 'file',
@@ -83,7 +89,7 @@ export function playNext() {
 
   if (stream.id) setQueueStore('history', h => [{ ...stream }, ...h]);
 
-  setPlayerStore('stream', nextStream);
+  setPlayerStore('stream', reconcile(nextStream));
   setPlayerStore('context', {
     id: nextStream.context?.id || '',
     src: nextStream.context?.src || ''
@@ -108,7 +114,7 @@ export function playPrev() {
   setQueueStore('history', h => h.slice(1));
   if (stream.id) setQueueStore('list', l => [{ ...stream }, ...l]);
 
-  setPlayerStore('stream', prevStream);
+  setPlayerStore('stream', reconcile(prevStream));
   setPlayerStore('context', {
     id: prevStream.context?.id || '',
     src: prevStream.context?.src || ''
@@ -121,15 +127,37 @@ createRoot(() => {
   let historyTimeoutId = 0;
   let lastNativeError = '';
   let nativeEndedHandled = false;
+  let nativeStreamRefreshTrackId = '';
 
   if ('mediaSession' in navigator)
     import('@modules/mediaSession').then(m => m.initMediaSession());
 
   playerStore.audio.volume = playerStore.volume;
 
+  function restartQueue() {
+    const replayOrder = [...queueStore.history].reverse();
+    if (playerStore.stream.id) replayOrder.push({ ...playerStore.stream });
+
+    const nextStream = replayOrder[0];
+    if (!nextStream) return false;
+
+    setQueueStore('history', []);
+    setQueueStore('list', replayOrder.slice(1));
+    setPlayerStore('stream', reconcile(nextStream));
+    setPlayerStore('context', {
+      id: nextStream.context?.id || '',
+      src: nextStream.context?.src || ''
+    });
+    player(nextStream.id);
+    return true;
+  }
+
   function handlePlaybackEnded() {
+    cancelAutoRadio();
     if (queueStore.list.length)
       playNext();
+    else if (playerStore.loop === 'queue' && restartQueue())
+      return;
     else {
       updateParam('s');
       setPlayerStore('playbackState', 'none');
@@ -140,6 +168,7 @@ createRoot(() => {
 
   function handlePlaybackPlaying() {
     setPlayerStore('playbackState', 'playing');
+    scheduleAutoRadio();
     if ('mediaSession' in navigator)
       import('@modules/mediaSession').then(m => {
         m.updateMediaSessionPlaybackState('playing');
@@ -165,6 +194,7 @@ createRoot(() => {
 
   function handlePlaybackPaused() {
     setPlayerStore('playbackState', 'paused');
+    cancelAutoRadio();
     if ('mediaSession' in navigator)
       import('@modules/mediaSession').then(m => {
         m.updateMediaSessionPlaybackState('paused');
@@ -212,6 +242,22 @@ createRoot(() => {
 
     if (state.error && state.error !== lastNativeError) {
       lastNativeError = state.error;
+
+      const trackId = playerStore.stream.id;
+      if (state.recoverableError && trackId && nativeStreamRefreshTrackId !== trackId) {
+        nativeStreamRefreshTrackId = trackId;
+        streamCache.remove(trackId);
+        setPlayerStore({
+          playbackState: 'loading',
+          status: 'Refreshing audio stream...'
+        });
+        window.setTimeout(() => {
+          if (playerStore.stream.id === trackId && !playerStore.isWatching)
+            void player(trackId);
+        }, NATIVE_STREAM_REFRESH_DELAY_MS);
+        return;
+      }
+
       setPlayerStore({
         playbackState: 'none',
         status: state.error
@@ -248,7 +294,9 @@ createRoot(() => {
         ? 1
         : (Number.isFinite(state.volume) ? state.volume : playerStore.volume),
       playbackRate: Number.isFinite(state.playbackRate) ? state.playbackRate : playerStore.playbackRate,
-      loop: typeof state.loop === 'boolean' ? state.loop : playerStore.loop
+      loop: state.loop
+        ? 'track'
+        : playerStore.loop === 'track' ? 'off' : playerStore.loop
     });
 
     applyPlaybackPosition(nextTime);
@@ -259,6 +307,9 @@ createRoot(() => {
       handlePlaybackPaused();
     else if (nextState === 'none' && previousState !== 'none')
       clearTimeout(historyTimeoutId);
+
+    if (nextState === 'playing')
+      nativeStreamRefreshTrackId = '';
   }
 
   playerStore.audio.onended = handlePlaybackEnded;

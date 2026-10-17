@@ -3,16 +3,25 @@ import { config, player } from "@utils";
 import type { AudioStream, StreamData } from "@core/streaming";
 import { isNativeApp } from "@platform/native";
 import { pauseNativePlayback, playNativePlayback, seekNativePlayback } from "@platform/native/playback";
+import { Capacitor } from '@capacitor/core';
+import { downloadNativeMp3 } from '@platform/native/download';
 
 export const idFromURL = (link: string | null) => link?.match(/(https?:\/\/)?((www\.)?(youtube(-nocookie)?|youtube.googleapis)\.com.*(v\/|v=|vi=|vi\/|e\/|embed\/|user\/.*\/u\/\d+\/)|youtu\.be\/)([_0-9a-z-]+)/i)?.[7];
 export function playlistIdFromURL(link: string | null) {
   if (!link) return '';
 
+  const value = link.trim();
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(value)) return value;
+
   try {
-    const url = new URL(link);
-    return url.searchParams.get('list') || '';
+    const url = new URL(value);
+    const queryId = url.searchParams.get('list');
+    if (queryId) return queryId;
+
+    const pathId = url.pathname.match(/\/playlist\/([a-zA-Z0-9_-]+)/)?.[1];
+    return pathId || '';
   } catch {
-    const match = link.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    const match = value.match(/[?&]list=([a-zA-Z0-9_-]+)/);
     return match?.[1] || '';
   }
 }
@@ -160,7 +169,7 @@ export async function getDownloadLink(id: string): Promise<void> {
         throw new Error(data.error || data.message || 'Unknown error');
       }
 
-      const { streams, title } = data;
+      const { streams, title, author } = data;
       const audioStreams = streams.filter(s => s.mimeType.startsWith('audio/'));
 
       if (audioStreams.length === 0) throw new Error('No audio streams found');
@@ -169,6 +178,16 @@ export async function getDownloadLink(id: string): Promise<void> {
       let selectedStream = audioStreams.find(s => s.url.includes('itag=251'));
       if (!selectedStream) {
         selectedStream = audioStreams.find(s => s.mimeType.includes('opus')) || audioStreams[0];
+      }
+
+      if (Capacitor.getPlatform() === 'android') {
+        await downloadNativeMp3({
+          url: new URL(selectedStream.url, location.origin).toString(),
+          title: title || id,
+          artist: author || ''
+        });
+        setStore('snackbar', `${t('actions_menu_download_success')} (Download/Loudara)`);
+        return;
       }
 
       const downloadUrl = proxyHandler(selectedStream.url, true);

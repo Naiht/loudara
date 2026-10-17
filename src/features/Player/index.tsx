@@ -2,7 +2,7 @@ import { createEffect, createSignal, lazy, onCleanup, onMount, Show } from "soli
 import './Player.css'
 import { MediaDetails } from "@components/MediaPartials";
 import { config, cssVar, player, streamCache } from "@utils";
-import { closeFeature, playerStore, setNavStore, setStore, t, updateParam } from "@stores";
+import { playerStore, setNavStore, setStore, t, updateParam } from "@stores";
 
 const MediaArtwork = lazy(() => import('../../components/MediaPartials/MediaArtwork'));
 const Lyrics = lazy(() => import('./Lyrics'));
@@ -36,13 +36,6 @@ export default function() {
       cssVar('--player-bg', `url(${mediaArtwork})`);
   });
 
-
-  function getContext() {
-    const { id } = playerStore.context;
-
-    return id;
-  }
-
   function canReloadStream() {
     return Boolean(
       playerStore.stream.id &&
@@ -62,6 +55,11 @@ export default function() {
     player(id);
   }
 
+  function returnToMain() {
+    setNavStore('player', 'state', false);
+    setNavStore('queue', 'state', false);
+  }
+
 
   return (
     <section
@@ -74,43 +72,53 @@ export default function() {
       </Show>
 
       <header class="topShelf">
-        <p>
-          <Show when={playerStore.context.src}>
-            <Show when={playerStore.context.src === 'queue'} fallback={t('player_from', getContext())}>
-              {getContext()}
-            </Show>
-          </Show>
-        </p>
+        <button
+          type="button"
+          class="playerTopButton"
+          aria-label={t('close')}
+          title={t('close')}
+          onclick={returnToMain}
+        >
+          <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+        </button>
+
+        <div class="playerIdentity" aria-label="Loudara now playing">
+          <span><i class="ri-sound-module-line" aria-hidden="true"></i> Loudara</span>
+          <small>Now playing</small>
+        </div>
 
         <div class="right-group">
           <Show when={playerStore.stream.id}>
-            <i
+            <button
+              type="button"
+              class="playerTopButton"
               aria-label={t('player_reload')}
+              title={t('player_reload')}
               onclick={reloadStream}
-              class="ri-refresh-line"></i>
+            >
+              <i class="ri-refresh-line" aria-hidden="true"></i>
+            </button>
           </Show>
 
-          <i
-            aria-label={t('close')}
-            onclick={() => { closeFeature('player') }}
-            class="ri-close-large-line"></i>
-
+          <button
+            type="button"
+            class="playerTopButton"
+            aria-label={t('player_more')}
+            title={t('player_more')}
+            onclick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setStore('actionsMenu', {
+                ...playerStore.stream,
+                menuPosition: {
+                  x: rect.right,
+                  y: rect.bottom + 8
+                }
+              });
+            }}
+          >
+            <i class="ri-more-2-fill" aria-hidden="true"></i>
+          </button>
         </div>
-        <i
-          aria-label={t('player_more')}
-          class="ri-more-2-fill"
-          id="moreBtn"
-          onclick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setStore('actionsMenu', {
-              ...playerStore.stream,
-              menuPosition: {
-                x: rect.right,
-                y: rect.bottom + 8
-              }
-            });
-          }}
-        ></i>
       </header>
       <article>
 

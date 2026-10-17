@@ -24,8 +24,8 @@ export default function() {
         }}
         value={config.searchFilter}
       >
-        <option value="all">{t('search_filter_all')}</option>
         <option value="song">{t('search_filter_music_songs')}</option>
+        <option value="all">{t('search_filter_all')}</option>
         <option value="album">{t('search_filter_music_albums')}</option>
         <option value="relevance">{t('search_filter_videos')}</option>
         <option value="upload_date">{t('search_filter_date')}</option>

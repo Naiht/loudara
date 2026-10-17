@@ -1,7 +1,6 @@
 package com.loudara.app;
 
 import android.app.PendingIntent;
-import android.os.Bundle;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -14,25 +13,21 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.session.CommandButton;
 import androidx.media3.session.MediaSession;
-import androidx.media3.session.SessionCommand;
-import androidx.media3.session.SessionCommands;
-import androidx.media3.session.SessionResult;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Arrays;
 import java.util.List;
 
+@UnstableApi
 public final class NativePlaybackManager {
     private static final NativePlaybackManager INSTANCE = new NativePlaybackManager();
-    private static final String ACTION_PREVIOUS = "com.loudara.app.action.PREVIOUS";
-    private static final String ACTION_NEXT = "com.loudara.app.action.NEXT";
-    private static final SessionCommand PREVIOUS_COMMAND = new SessionCommand(ACTION_PREVIOUS, Bundle.EMPTY);
-    private static final SessionCommand NEXT_COMMAND = new SessionCommand(ACTION_NEXT, Bundle.EMPTY);
+    private static final String PLAYBACK_USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
 
     @Nullable
     private Context appContext;
@@ -44,6 +39,7 @@ public final class NativePlaybackManager {
     private MediaSession mediaSession;
 
     private String lastErrorMessage = "";
+    private boolean lastErrorRecoverable = false;
 
     private NativePlaybackManager() {}
 
@@ -60,7 +56,12 @@ public final class NativePlaybackManager {
             return;
         }
 
-        ExoPlayer exoPlayer = new ExoPlayer.Builder(appContext).build();
+        DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory()
+            .setUserAgent(PLAYBACK_USER_AGENT)
+            .setAllowCrossProtocolRedirects(true);
+        ExoPlayer exoPlayer = new ExoPlayer.Builder(appContext)
+            .setMediaSourceFactory(new DefaultMediaSourceFactory(dataSourceFactory))
+            .build();
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -75,6 +76,11 @@ public final class NativePlaybackManager {
 
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
+                emitState(false);
+            }
+
+            @Override
+            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
                 emitState(false);
             }
 
@@ -96,6 +102,7 @@ public final class NativePlaybackManager {
             @Override
             public void onPlayerError(PlaybackException error) {
                 lastErrorMessage = error.getMessage() == null ? "No fue posible reproducir el audio." : error.getMessage();
+                lastErrorRecoverable = error.errorCode >= 2000 && error.errorCode < 3000;
                 emitState(false);
             }
         });
@@ -113,53 +120,12 @@ public final class NativePlaybackManager {
         }
 
         player = exoPlayer;
-        MediaSession.Builder sessionBuilder = new MediaSession.Builder(appContext, exoPlayer);
+        MediaSession.Builder sessionBuilder = new MediaSession.Builder(appContext, new QueueTransportPlayer(exoPlayer, NativePlaybackPlugin::emitTransportControl));
         if (sessionActivity != null) {
             sessionBuilder.setSessionActivity(sessionActivity);
         }
         List<CommandButton> transportButtons = createTransportButtons();
-        sessionBuilder
-            .setCallback(new MediaSession.Callback() {
-                @Override
-                public MediaSession.ConnectionResult onConnect(
-                    MediaSession session,
-                    MediaSession.ControllerInfo controller
-                ) {
-                    MediaSession.ConnectionResult defaultResult = MediaSession.Callback.super.onConnect(session, controller);
-                    SessionCommands sessionCommands = defaultResult.availableSessionCommands
-                        .buildUpon()
-                        .add(PREVIOUS_COMMAND)
-                        .add(NEXT_COMMAND)
-                        .build();
-
-                    return new MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                        .setAvailablePlayerCommands(defaultResult.availablePlayerCommands)
-                        .setAvailableSessionCommands(sessionCommands)
-                        .setMediaButtonPreferences(transportButtons)
-                        .build();
-                }
-
-                @Override
-                public ListenableFuture<SessionResult> onCustomCommand(
-                    MediaSession session,
-                    MediaSession.ControllerInfo controller,
-                    SessionCommand customCommand,
-                    Bundle args
-                ) {
-                    if (ACTION_PREVIOUS.equals(customCommand.customAction)) {
-                        NativePlaybackPlugin.emitTransportControl("previous");
-                        return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
-                    }
-
-                    if (ACTION_NEXT.equals(customCommand.customAction)) {
-                        NativePlaybackPlugin.emitTransportControl("next");
-                        return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
-                    }
-
-                    return MediaSession.Callback.super.onCustomCommand(session, controller, customCommand, args);
-                }
-            })
-            .setMediaButtonPreferences(transportButtons);
+        sessionBuilder.setMediaButtonPreferences(transportButtons);
         mediaSession = sessionBuilder.build();
     }
 
@@ -209,6 +175,7 @@ public final class NativePlaybackManager {
             .build();
 
         lastErrorMessage = "";
+        lastErrorRecoverable = false;
         player.setRepeatMode(loop ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
         player.setPlaybackSpeed(playbackRate);
         player.setVolume(volume);
@@ -224,6 +191,7 @@ public final class NativePlaybackManager {
     public synchronized PlaybackSnapshot play() {
         if (player != null) {
             lastErrorMessage = "";
+            lastErrorRecoverable = false;
             player.play();
         }
         return getSnapshot(false);
@@ -291,7 +259,8 @@ public final class NativePlaybackManager {
             player.getPlaybackParameters().speed,
             loop,
             ended,
-            lastErrorMessage
+            lastErrorMessage,
+            lastErrorRecoverable
         );
     }
 
@@ -317,6 +286,7 @@ public final class NativePlaybackManager {
         }
 
         lastErrorMessage = "";
+        lastErrorRecoverable = false;
     }
 
     private synchronized void emitState(boolean ended) {
@@ -327,12 +297,12 @@ public final class NativePlaybackManager {
         return Arrays.asList(
             new CommandButton.Builder(CommandButton.ICON_PREVIOUS)
                 .setDisplayName("Anterior")
-                .setSessionCommand(PREVIOUS_COMMAND)
+                .setPlayerCommand(Player.COMMAND_SEEK_TO_PREVIOUS)
                 .setSlots(new int[] { CommandButton.SLOT_BACK })
                 .build(),
             new CommandButton.Builder(CommandButton.ICON_NEXT)
                 .setDisplayName("Siguiente")
-                .setSessionCommand(NEXT_COMMAND)
+                .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT)
                 .setSlots(new int[] { CommandButton.SLOT_FORWARD })
                 .build()
         );
@@ -344,7 +314,7 @@ public final class NativePlaybackManager {
         }
 
         if (currentPlayer.getPlaybackState() == Player.STATE_BUFFERING) {
-            return "loading";
+            return currentPlayer.getPlayWhenReady() ? "loading" : "paused";
         }
 
         if (currentPlayer.isPlaying()) {
@@ -367,6 +337,7 @@ public final class NativePlaybackManager {
         public final boolean loop;
         public final boolean ended;
         public final String error;
+        public final boolean recoverableError;
 
         public PlaybackSnapshot(
             String playbackState,
@@ -376,7 +347,8 @@ public final class NativePlaybackManager {
             double playbackRate,
             boolean loop,
             boolean ended,
-            String error
+            String error,
+            boolean recoverableError
         ) {
             this.playbackState = playbackState;
             this.currentTime = currentTime;
@@ -386,10 +358,11 @@ public final class NativePlaybackManager {
             this.loop = loop;
             this.ended = ended;
             this.error = error;
+            this.recoverableError = recoverableError;
         }
 
         public static PlaybackSnapshot empty() {
-            return new PlaybackSnapshot("none", 0d, 0d, 1d, 1d, false, false, "");
+            return new PlaybackSnapshot("none", 0d, 0d, 1d, 1d, false, false, "", false);
         }
     }
 }

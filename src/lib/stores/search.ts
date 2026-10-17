@@ -30,6 +30,10 @@ let lastQuery = '';
 const DEBOUNCE_TIME = 400;
 const MIN_INITIAL_RESULTS = 18;
 
+function isRecoverableParserWarning(error: unknown) {
+  return error instanceof Error && /expected node of any type|continuationitems/i.test(error.message);
+}
+
 function normalizeSearchPayload(payload: SearchResultPage | (YTItem | YTListItem)[]): SearchResultPage {
   if (Array.isArray(payload)) {
     return {
@@ -101,7 +105,8 @@ export function getSearchSuggestions(text: string) {
       })
       .catch(e => {
         if (e.name === 'AbortError') return;
-        setStore('snackbar', e.message);
+        if (!isRecoverableParserWarning(e))
+          setStore('snackbar', e.message);
         setSearchStore('suggestions', 'data', []);
       });
   }, DEBOUNCE_TIME);
@@ -169,7 +174,8 @@ export async function getSearchResults(options: boolean | { force?: boolean, app
       setTimeout(() => getSearchResults({ append: true }), 0);
     }
   } catch (e) {
-    setStore('snackbar', e instanceof Error ? e.message : 'Could not load search results');
+    if (!isRecoverableParserWarning(e))
+      setStore('snackbar', e instanceof Error ? e.message : 'Could not load search results');
     if (!append) {
       setSearchStore('results', []);
     }

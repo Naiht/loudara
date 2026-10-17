@@ -25,6 +25,7 @@ export function getInvalidYoutubeSessionValueReason(credentials: StreamingCreden
     credentials.poToken
   ];
 
+  if (credentials.poToken && !credentials.visitorData) return 'visitor_required';
   if (values.some(hasTruncatedValue)) return 'truncated';
   if (values.some(value => value && !isValidHeaderValue(value))) return 'invalid_header_value';
   return undefined;
@@ -43,11 +44,11 @@ function getSessionStorage(): Storage | null {
   }
 }
 
-function normalizeCredentials(credentials: StreamingCredentials): StreamingCredentials {
+function normalizeCredentials(credentials: Partial<StreamingCredentials>): StreamingCredentials {
   return {
-    cookie: credentials.cookie.trim(),
-    visitorData: credentials.visitorData.trim(),
-    poToken: credentials.poToken.trim()
+    cookie: credentials.cookie?.trim() || '',
+    visitorData: credentials.visitorData?.trim() || '',
+    poToken: credentials.poToken?.trim() || ''
   };
 }
 

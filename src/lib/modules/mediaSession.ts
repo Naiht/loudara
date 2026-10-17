@@ -1,4 +1,13 @@
 import { playerStore, playNext, playPrev, queueStore } from "@stores";
+import { isNativeApp } from "@platform/native";
+import { pauseNativePlayback, playNativePlayback, seekNativePlayback, stopNativePlayback } from "@platform/native/playback";
+
+const usesNativePlayback = () => isNativeApp && !playerStore.isWatching;
+
+function seek(position: number) {
+  if (usesNativePlayback()) void seekNativePlayback(position).catch(console.error);
+  else playerStore.audio.currentTime = position;
+}
 
 export function initMediaSession() {
   if (!('mediaSession' in navigator)) return;
@@ -6,21 +15,25 @@ export function initMediaSession() {
   const msn = navigator.mediaSession;
 
   msn.setActionHandler('play', () => {
-    playerStore.audio.play();
+    if (usesNativePlayback()) void playNativePlayback().catch(console.error);
+    else void playerStore.audio.play();
   });
 
   msn.setActionHandler('pause', () => {
-    playerStore.audio.pause();
+    if (usesNativePlayback()) void pauseNativePlayback().catch(console.error);
+    else playerStore.audio.pause();
   });
 
   msn.setActionHandler('seekbackward', (details) => {
     const skipTime = details.seekOffset || 15;
-    playerStore.audio.currentTime = Math.max(playerStore.audio.currentTime - skipTime, 0);
+    seek(Math.max((usesNativePlayback() ? playerStore.currentTime : playerStore.audio.currentTime) - skipTime, 0));
   });
 
   msn.setActionHandler('seekforward', (details) => {
     const skipTime = details.seekOffset || 15;
-    playerStore.audio.currentTime = Math.min(playerStore.audio.currentTime + skipTime, playerStore.audio.duration);
+    const duration = usesNativePlayback() ? playerStore.fullDuration : playerStore.audio.duration;
+    const position = usesNativePlayback() ? playerStore.currentTime : playerStore.audio.currentTime;
+    seek(Number.isFinite(duration) && duration > 0 ? Math.min(position + skipTime, duration) : position + skipTime);
   });
 
   msn.setActionHandler('previoustrack', () => {
@@ -36,19 +49,22 @@ export function initMediaSession() {
   });
 
   msn.setActionHandler('stop', () => {
-    playerStore.audio.pause();
-    playerStore.audio.currentTime = 0;
+    if (usesNativePlayback()) void stopNativePlayback().catch(console.error);
+    else {
+      playerStore.audio.pause();
+      playerStore.audio.currentTime = 0;
+    }
   });
 
   msn.setActionHandler('seekto', (details) => {
     if (details.seekTime !== undefined) {
-      playerStore.audio.currentTime = details.seekTime;
+      seek(details.seekTime);
     }
   });
 }
 
 export function updateMediaSessionPosition() {
-  if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+  if (usesNativePlayback() || !('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
 
   const { audio } = playerStore;
   if (!isNaN(audio.duration) && audio.duration > 0) {
@@ -65,6 +81,6 @@ export function updateMediaSessionPosition() {
 }
 
 export function updateMediaSessionPlaybackState(state: 'playing' | 'paused' | 'none') {
-    if (!('mediaSession' in navigator)) return;
+    if (usesNativePlayback() || !('mediaSession' in navigator)) return;
     navigator.mediaSession.playbackState = state === 'none' ? 'none' : (state === 'playing' ? 'playing' : 'paused');
 }

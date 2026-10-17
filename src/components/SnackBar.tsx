@@ -1,8 +1,8 @@
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect, onCleanup, Show } from "solid-js";
 import { setStore, store } from "@stores";
 import "./SnackBar.css";
 
-type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = 'success' | 'error' | 'info';
 
 function getSnackbarMessage() {
   const snackbar = store.snackbar;
@@ -16,10 +16,6 @@ function inferToastType(message: string): ToastType {
     return 'error';
   }
 
-  if (/(limit|exceeded|warning|reload|not enough|no hay|no valid|does not exist)/i.test(text)) {
-    return 'warning';
-  }
-
   if (/(loading|syncing|processing|downloading|updating|reintentando|verifying)/i.test(text)) {
     return 'info';
   }
@@ -29,14 +25,18 @@ function inferToastType(message: string): ToastType {
 
 function getSnackbarType(): ToastType {
   const snackbar = store.snackbar;
-  if (typeof snackbar !== 'string' && snackbar?.type) return snackbar.type;
+  if (typeof snackbar !== 'string' && snackbar?.type)
+    return snackbar.type === 'warning' ? 'info' : snackbar.type;
   return inferToastType(getSnackbarMessage());
+}
+
+function isWarningMessage() {
+  return typeof store.snackbar !== 'string' && store.snackbar?.type === 'warning';
 }
 
 const icons: Record<ToastType, string> = {
   success: 'ri-checkbox-circle-fill',
   error: 'ri-error-warning-fill',
-  warning: 'ri-alert-fill',
   info: 'ri-information-fill'
 };
 
@@ -44,6 +44,11 @@ export default function() {
   createEffect(() => {
     const message = store.snackbar;
     if (!message) return;
+
+    if (isWarningMessage()) {
+      setStore('snackbar', undefined);
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       if (store.snackbar === message) {
@@ -58,20 +63,22 @@ export default function() {
   const type = () => getSnackbarType();
 
   return (
-    <button
-      class="snackbar-toast"
-      classList={{ [`snackbar-toast--${type()}`]: true }}
-      type="button"
-      aria-live="polite"
-      role={type() === 'error' || type() === 'warning' ? 'alert' : 'status'}
-      onclick={() => setStore('snackbar', undefined)}
-    >
-      <span class="snackbar-toast__icon" aria-hidden="true">
-        <i class={icons[type()]} />
-      </span>
-      <span class="snackbar-toast__content">
-        {message()}
-      </span>
-    </button>
+    <Show when={!isWarningMessage()}>
+      <button
+        class="snackbar-toast"
+        classList={{ [`snackbar-toast--${type()}`]: true }}
+        type="button"
+        aria-live="polite"
+        role={type() === 'error' ? 'alert' : 'status'}
+        onclick={() => setStore('snackbar', undefined)}
+      >
+        <span class="snackbar-toast__icon" aria-hidden="true">
+          <i class={icons[type()]} />
+        </span>
+        <span class="snackbar-toast__content">
+          {message()}
+        </span>
+      </button>
+    </Show>
   );
 }

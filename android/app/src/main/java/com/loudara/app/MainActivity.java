@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NativePlaybackPlugin.class);
+        registerPlugin(NativeDownloadPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

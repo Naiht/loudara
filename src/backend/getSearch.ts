@@ -18,7 +18,11 @@ type SearchResultPage = {
 
 function mapSearchItems(nodes: Iterable<any>, f?: string): (YTItem | YTListItem)[] {
   return Array.from(nodes)
-    .map((node) => (f === 'song' ? streamMapper(node) : streamMapper(node) || listMapper(node)))
+    .map((node) => f === 'song'
+      ? streamMapper(node)
+      : f === 'album' || f === 'artist'
+        ? listMapper(node)
+        : streamMapper(node) || listMapper(node))
     .filter((item): item is YTItem | YTListItem => item !== null);
 }
 

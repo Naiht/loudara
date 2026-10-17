@@ -38,7 +38,7 @@ export const [store, setStore] = createStore(storeInit);
 export function t(key: TranslationKeys, value: string = ''): string {
 
   const translations = store.translations as Record<TranslationKeys, string>;
-  const translatedString = translations[key] || key as string;
+  const translatedString = translations[key] || (key === 'settings_auto_radio' ? 'Start radio automatically' : key as string);
   return value ? translatedString.replace('$', value) : translatedString;
 }
 

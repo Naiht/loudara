@@ -297,6 +297,7 @@ export function addToCollection(
     else collection.push(id);
 
     if (id in tracks) {
+      if (!tracks[id].img && item.img) tracks[id].img = item.img;
       libraryPlays[id] = (libraryPlays[id] || 1) + 1;
       setDrawer('libraryPlays', libraryPlays);
     } else {
@@ -451,6 +452,7 @@ export async function fetchCollection(
   const syncSource = shared ? null : getImportedPlaylistSource(id);
 
   setListStore({
+    id: decodeURI(id),
     name: decodeURIComponent(display),
     type: 'collection',
     isReversed: isReserved,
@@ -645,6 +647,7 @@ export function cleanseLibraryData() {
         duration: track.duration,
         author: track.author,
         authorId: track.authorId || '',
+        ...(track.img ? { img: track.img } : {}),
       };
 
       if (config.dbsync && track.modified) {

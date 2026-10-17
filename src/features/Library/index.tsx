@@ -89,60 +89,61 @@ export default function() {
         <Dropdown />
       </header>
 
-      <Show when={showGallery()}>
-        <Gallery />
-      </Show>
-      <Show when={showSubFeed()}>
-        <SubFeed />
-      </Show>
-      <Collections />
-      <br />
-      <Show when={getLibraryAlbums().length > 0}>
-        <article>
-          <p>
-            <i class="ri-album-fill"></i>&nbsp;
-            {t('library_albums')}
-          </p>
-          <div>
-            <For each={getLibraryAlbums()}>
-              {(item) =>
-                <ListItem
-                  name={item.name}
-                  id={item.id}
-                  img={item.img}
-                  author={item.author}
-                  type='album'
-                />
-              }
-            </For>
-          </div>
-        </article>
-      </Show>
-      <br />
+      <div class="library__content">
+        <Show when={showGallery()}>
+          <Gallery />
+        </Show>
+        <Show when={showSubFeed()}>
+          <SubFeed />
+        </Show>
+        <Collections />
+        <br />
+        <Show when={getLibraryAlbums().length > 0}>
+          <article>
+            <p>
+              <i class="ri-album-fill"></i>&nbsp;
+              {t('library_albums')}
+            </p>
+            <div>
+              <For each={getLibraryAlbums()}>
+                {(item) =>
+                  <ListItem
+                    name={item.name}
+                    id={item.id}
+                    img={item.img}
+                    author={item.author}
+                    type='album'
+                  />
+                }
+              </For>
+            </div>
+          </article>
+        </Show>
+        <br />
 
-      <Show when={getLists('playlists').length > 0}>
-        <article>
-          <p>
-            <i class='ri-youtube-fill'></i>&nbsp;
-            {t('library_playlists_youtube')}
-          </p>
-          <div>
-            <For each={getLists('playlists')}>
-              {(item) =>
-                <ListItem
-                  name={item.name}
-                  id={item.id}
-                  img={item.img}
-                  author={item.author}
-                  type='playlist'
-                />
-              }
-            </For>
-          </div>
-        </article>
-      </Show>
+        <Show when={getLists('playlists').length > 0}>
+          <article>
+            <p>
+              <i class='ri-youtube-fill'></i>&nbsp;
+              {t('library_playlists_youtube')}
+            </p>
+            <div>
+              <For each={getLists('playlists')}>
+                {(item) =>
+                  <ListItem
+                    name={item.name}
+                    id={item.id}
+                    img={item.img}
+                    author={item.author}
+                    type='playlist'
+                  />
+                }
+              </For>
+            </div>
+          </article>
+        </Show>
+      </div>
 
-      <br />
       <ImportYoutubePlaylistModal
         open={showImportPlaylistModal()}
         onClose={() => setShowImportPlaylistModal(false)}

@@ -26,6 +26,7 @@ export default function() {
             author={item.author}
             duration={item.duration}
             authorId={item.authorId}
+            img={item.img}
             type="video"
             draggable={true}
             removeMode={queueStore.removeMode}

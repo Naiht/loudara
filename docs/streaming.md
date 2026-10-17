@@ -80,6 +80,23 @@ When YouTube returns `Sign in to confirm you're not a bot`, the backend reports 
 
 The resolver can use a private authenticated or attested session through `YOUTUBE_COOKIE`, `YOUTUBE_VISITOR_DATA`, and `YOUTUBE_PO_TOKEN`. With a cookie or Proof-of-Origin token configured, the `WEB` client is attempted first, followed by the existing mobile/TV fallbacks. See `docs/environment.md` for configuration.
 
+## YouTube Bot Challenge Notes
+
+`glassy-music-nankill` avoids many bot challenges because it is primarily an Electron wrapper around the real `music.youtube.com` web app. Playback happens inside YouTube Music's own Chromium session, so YouTube receives normal browser cookies, headers, service-worker state, and player traffic.
+
+Its downloader path still uses `youtubei.js`, but it strengthens that session by:
+
+- reading cookies from Electron's `music.youtube.com` session;
+- using Electron `net.fetch`, which behaves closer to Chromium networking than a serverless `fetch`;
+- generating a session-bound Proof-of-Origin token from `visitorData` with `bgutils-js`;
+- using `youtubei.js` 17.2.x.
+
+Loudara resolves direct audio URLs from an API route/worker, so anonymous requests look much more like automation. The supported mitigation is to provide the same attestation material: cookie, matching `visitorData`, and matching `poToken`. The Settings screen can store these for the current browser tab and send them as internal headers to `/api/stream/:videoId`.
+
+For Android and desktop, configure an absolute `VITE_LOUDARA_API_URL` for the deployed Worker. Native playback prioritizes that route, where media is proxied and YouTube attestation stays with the resolver. If the API is temporarily unreachable, Loudara falls back to the device resolver using the saved session values. Android also refreshes a signed audio URL once after a recoverable HTTP/network failure instead of leaving the track stuck.
+
+Automatic PO token generation is deliberately not bundled into the Cloudflare Worker path yet: the known approach evaluates YouTube challenge JavaScript and needs a DOM-like runtime, which is fragile or unavailable in some serverless environments. If we add it later, keep it behind a runtime-specific adapter rather than mixing it into stream selection.
+
 ## Secrets
 
 No private provider key belongs in the frontend.

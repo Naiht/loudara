@@ -29,7 +29,8 @@ export default function() {
       class='miniplayer'
       style={`--mini-player-progress: ${progress()}%;`}
       onclick={(e) => {
-      if (!e.target.matches('button'))
+      const target = e.target as HTMLElement;
+      if (!target.closest('button, input'))
         setNavStore('player', 'state', true);
       }}
     >
