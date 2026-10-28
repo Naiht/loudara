@@ -154,7 +154,8 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
   if (node.is(YTNodes.LockupView)) {
     const lockup = node.as(YTNodes.LockupView);
 
-    if (lockup.content_id?.startsWith('RD')) return null;
+    const id = lockup.content_id;
+    if (!id || id.startsWith('RD')) return null;
 
     const metadata = lockup.metadata?.as(YTNodes.LockupMetadataView);
     const contentImage = lockup.content_image?.as(YTNodes.CollectionThumbnailView);
@@ -165,7 +166,7 @@ export function listMapper(node: Helpers.YTNode): YTListItem | null {
       ?.badges?.[0]?.text || "0 videos";
 
     return {
-      id: lockup.content_id,
+      id,
       name: metadata?.title?.toString() || "Unknown Playlist",
       videoCount: videoCountBadge,
       img: getThumbnailId(thumbUrl),

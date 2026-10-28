@@ -1,5 +1,6 @@
 import { params, setNavStore, setStore, setPlayerStore, getList, setSearchStore, playerStore, t } from '@stores';
 import { config, getDownloadLink, idFromURL, fetchCollection, player, setConfig, cleanseLibraryData, drawer } from '@utils';
+import { isTauriRuntimeAvailable } from '@platform/tauri';
 
 
 
@@ -96,7 +97,13 @@ export default async function() {
   document.addEventListener('pointerout', toggleTooltip);
 
 
-  if (import.meta.env.PROD)
+  if (isTauriRuntimeAvailable() && 'serviceWorker' in navigator) {
+    // Desktop releases ship their assets with the app. An old PWA worker could
+    // otherwise keep serving assets from a previous installation.
+    navigator.serviceWorker.getRegistrations()
+      .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+      .catch(error => console.warn('Could not unregister desktop service workers', error));
+  } else if (import.meta.env.PROD)
     await import('virtual:pwa-register').then(pwa => {
 
       const handleUpdate = pwa.registerSW({

@@ -390,6 +390,7 @@ export const metaUpdater = (key: string, remove?: boolean) => {
     meta[key] = timestamp;
 
   localStorage.setItem('library_meta', JSON.stringify(meta));
+  setStore('libraryRevision', revision => revision + 1);
   setStore('syncState', 'dirty');
   syncLibrary('schedule');
 }

@@ -97,6 +97,7 @@ export async function player(id?: string) {
   if (!enforceVideo)
     setPlayerStore({
       playbackState: 'loading',
+      isLoadingStream: true,
       status: 'Loading Audio...'
     });
 
@@ -119,6 +120,7 @@ export async function player(id?: string) {
       const errorData = data as Record<'error' | 'message', string>;
       setPlayerStore({
         playbackState: 'none',
+        isLoadingStream: false,
         status: errorData.message || errorData.error || 'Loading Audio Failed'
       });
       setStore('snackbar', {
@@ -155,6 +157,7 @@ export async function player(id?: string) {
         const message = 'Loading Audio Failed';
         setPlayerStore({
           playbackState: 'none',
+          isLoadingStream: false,
           status: message
         });
         setStore('snackbar', {
@@ -212,6 +215,7 @@ export async function player(id?: string) {
     const message = error instanceof Error ? error.message : 'Loading Audio Failed';
     setPlayerStore({
       playbackState: 'none',
+      isLoadingStream: false,
       status: message
     });
     setStore('snackbar', {

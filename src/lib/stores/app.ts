@@ -23,11 +23,13 @@ const storeInit: {
   },
   snackbar?: SnackbarMessage,
   syncState?: SyncState,
+  libraryRevision: number,
   locale: string,
   translations: Record<TranslationKeys, string> | {}
 } = {
   api: import.meta.env.VITE_LOUDARA_API_URL || '/api',
   useSaavn: true,
+  libraryRevision: 0,
   locale: initLocale,
   translations: {},
 };

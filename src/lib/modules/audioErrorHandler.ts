@@ -43,6 +43,7 @@ export default function(
       });
       setPlayerStore({
         playbackState: 'none',
+        isLoadingStream: false,
         status: message
       });
     }
@@ -55,6 +56,7 @@ export default function(
       const message = 'No fue posible cargar el audio. Puedes intentar recargar la cancion.';
       setPlayerStore({
         playbackState: 'none',
+        isLoadingStream: false,
         status: message
       });
       setStore('snackbar', {
@@ -77,6 +79,7 @@ export default function(
     const message = 'No fue posible cargar el audio. Puedes intentar recargar la cancion.';
     setPlayerStore({
       playbackState: 'none',
+      isLoadingStream: false,
       status: message
     });
     setStore('snackbar', {

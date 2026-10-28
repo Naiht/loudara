@@ -93,7 +93,7 @@ Its downloader path still uses `youtubei.js`, but it strengthens that session by
 
 Loudara resolves direct audio URLs from an API route/worker, so anonymous requests look much more like automation. The supported mitigation is to provide the same attestation material: cookie, matching `visitorData`, and matching `poToken`. The Settings screen can store these for the current browser tab and send them as internal headers to `/api/stream/:videoId`.
 
-For Android and desktop, configure an absolute `VITE_LOUDARA_API_URL` for the deployed Worker. Native playback prioritizes that route, where media is proxied and YouTube attestation stays with the resolver. If the API is temporarily unreachable, Loudara falls back to the device resolver using the saved session values. Android also refreshes a signed audio URL once after a recoverable HTTP/network failure instead of leaving the track stuck.
+Android and desktop can resolve streams directly on the device without a deployed Worker. Android optionally prioritizes a configured `VITE_LOUDARA_API_URL`, falling back to the device resolver if the API is unreachable. Desktop always uses the device resolver. Android also refreshes a signed audio URL once after a recoverable HTTP/network failure instead of leaving the track stuck.
 
 Automatic PO token generation is deliberately not bundled into the Cloudflare Worker path yet: the known approach evaluates YouTube challenge JavaScript and needs a DOM-like runtime, which is fragile or unavailable in some serverless environments. If we add it later, keep it behind a runtime-specific adapter rather than mixing it into stream selection.
 

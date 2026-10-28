@@ -13,42 +13,51 @@ export function initMediaSession() {
   if (!('mediaSession' in navigator)) return;
 
   const msn = navigator.mediaSession;
+  // A WebView may not implement every optional action. Register each separately
+  // so an unsupported seek action cannot disable next/previous media keys.
+  const register = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
+    try {
+      msn.setActionHandler(action, handler);
+    } catch (error) {
+      console.debug(`Media action ${action} is unavailable`, error);
+    }
+  };
 
-  msn.setActionHandler('play', () => {
+  register('play', () => {
     if (usesNativePlayback()) void playNativePlayback().catch(console.error);
     else void playerStore.audio.play();
   });
 
-  msn.setActionHandler('pause', () => {
+  register('pause', () => {
     if (usesNativePlayback()) void pauseNativePlayback().catch(console.error);
     else playerStore.audio.pause();
   });
 
-  msn.setActionHandler('seekbackward', (details) => {
+  register('seekbackward', (details) => {
     const skipTime = details.seekOffset || 15;
     seek(Math.max((usesNativePlayback() ? playerStore.currentTime : playerStore.audio.currentTime) - skipTime, 0));
   });
 
-  msn.setActionHandler('seekforward', (details) => {
+  register('seekforward', (details) => {
     const skipTime = details.seekOffset || 15;
     const duration = usesNativePlayback() ? playerStore.fullDuration : playerStore.audio.duration;
     const position = usesNativePlayback() ? playerStore.currentTime : playerStore.audio.currentTime;
     seek(Number.isFinite(duration) && duration > 0 ? Math.min(position + skipTime, duration) : position + skipTime);
   });
 
-  msn.setActionHandler('previoustrack', () => {
+  register('previoustrack', () => {
     if (queueStore.history.length) {
       playPrev();
     }
   });
 
-  msn.setActionHandler('nexttrack', () => {
+  register('nexttrack', () => {
     if (queueStore.list.length) {
       playNext();
     }
   });
 
-  msn.setActionHandler('stop', () => {
+  register('stop', () => {
     if (usesNativePlayback()) void stopNativePlayback().catch(console.error);
     else {
       playerStore.audio.pause();
@@ -56,7 +65,7 @@ export function initMediaSession() {
     }
   });
 
-  msn.setActionHandler('seekto', (details) => {
+  register('seekto', (details) => {
     if (details.seekTime !== undefined) {
       seek(details.seekTime);
     }

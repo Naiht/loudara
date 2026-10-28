@@ -8,7 +8,6 @@ type TauriHttpFetchResponse = {
 };
 
 async function requestToTauriFetchInput(input: RequestInfo | URL, init?: RequestInit) {
-  if (input instanceof Request) return input;
   return new Request(input, init);
 }
 
@@ -35,7 +34,8 @@ export async function tauriFetch(input: RequestInfo | URL, init?: RequestInit) {
     body
   });
 
-  return new Response(new Uint8Array(response.body), {
+  const bodyAllowed = request.method !== 'HEAD' && ![204, 205, 304].includes(response.status);
+  return new Response(bodyAllowed ? new Uint8Array(response.body) : null, {
     status: response.status,
     headers: new Headers(response.headers)
   });

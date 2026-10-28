@@ -44,7 +44,7 @@ export default async function(
 
   if (!noOfBitrates) {
     setPlayerStore('status', t('player_audiostreams_null'));
-    setPlayerStore('playbackState', 'none');
+    setPlayerStore({ playbackState: 'none', isLoadingStream: false });
     return;
   }
 
@@ -54,7 +54,7 @@ export default async function(
 
   if (!candidates.length) {
     setPlayerStore('status', 'No browser-compatible audio streams found');
-    setPlayerStore('playbackState', 'none');
+    setPlayerStore({ playbackState: 'none', isLoadingStream: false });
     return;
   }
 

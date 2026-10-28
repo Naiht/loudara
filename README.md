@@ -59,7 +59,7 @@ The debug APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk
 
 ## Configuration
 
-Copy `.env.example` for local overrides. For reliable streaming in desktop and Android builds, configure `VITE_LOUDARA_API_URL` with the HTTPS address of a deployed Loudara API. Streaming availability can depend on the provider and its session requirements. Do not put private credentials in `VITE_*` variables.
+Environment variables are optional for desktop and Android builds. Both can resolve streams on the device without a Loudara API; Android can optionally use a deployed API. Streaming availability can depend on the provider and its session requirements. Do not put private credentials in `VITE_*` variables.
 
 See [environment configuration](docs/environment.md), [streaming](docs/streaming.md), and [architecture](docs/architecture.md) for details.
 

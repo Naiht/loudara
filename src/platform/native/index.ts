@@ -4,6 +4,7 @@ import type { StreamingCredentials } from '../contracts';
 import { requestNativePlaybackPermissions } from './playback';
 import { ApiStreamProvider } from '../web/streaming/ApiStreamProvider';
 import { webStreamingCredentials } from '../web/streamingCredentials';
+import { isTauriRuntimeAvailable } from '../tauri';
 
 type SearchResultPage = {
   items: (YTItem | YTListItem)[];
@@ -39,6 +40,8 @@ function isThrottleLikeMessage(message: string) {
 }
 
 function getRemoteApiBase() {
+  // Desktop builds resolve streams on the device, even if web settings exist.
+  if (isTauriRuntimeAvailable()) return undefined;
   const value = (
     import.meta.env.VITE_LOUDARA_API_URL
     || import.meta.env.VITE_STREAM_API_BASE

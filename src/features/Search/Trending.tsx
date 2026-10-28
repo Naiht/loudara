@@ -31,6 +31,9 @@ export default function Trending() {
   const isTrack = (item: YTItem | YTListItem): item is YTItem => item.type === 'video' || item.type === 'song';
 
   const recentItems = createMemo<ShelfTrack[]>(() => {
+    // localStorage is not reactive in Android WebView. Track library writes so
+    // the shelf updates as soon as playback adds an item to history.
+    store.libraryRevision;
     const historyIds = getCollection('history');
     const tracksMap = getTracksMap();
     const recentPool: (ShelfTrack & { recency: number, plays: number })[] = [];

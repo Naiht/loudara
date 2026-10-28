@@ -27,6 +27,7 @@ type PlayerStore = {
   volume: number,
   status: string,
   playbackState: 'none' | 'playing' | 'paused' | 'loading',
+  isLoadingStream: boolean,
   mediaArtwork: string,
   mediaArtworkSource: string,
   mediaArtworkTrackId: string,
@@ -45,6 +46,7 @@ type PlayerStore = {
 const createInitialState = (): PlayerStore => ({
   audio: new Audio(),
   playbackState: 'none',
+  isLoadingStream: false,
   context: { id: '', src: '' },
   status: '',
   currentTime: 0,
@@ -160,14 +162,14 @@ createRoot(() => {
       return;
     else {
       updateParam('s');
-      setPlayerStore('playbackState', 'none');
+      setPlayerStore({ playbackState: 'none', isLoadingStream: false });
       if ('mediaSession' in navigator)
         import('@modules/mediaSession').then(m => m.updateMediaSessionPlaybackState('none'));
     }
   }
 
   function handlePlaybackPlaying() {
-    setPlayerStore('playbackState', 'playing');
+    setPlayerStore({ playbackState: 'playing', isLoadingStream: false });
     scheduleAutoRadio();
     if ('mediaSession' in navigator)
       import('@modules/mediaSession').then(m => {
@@ -249,6 +251,7 @@ createRoot(() => {
         streamCache.remove(trackId);
         setPlayerStore({
           playbackState: 'loading',
+          isLoadingStream: true,
           status: 'Refreshing audio stream...'
         });
         window.setTimeout(() => {
@@ -260,6 +263,7 @@ createRoot(() => {
 
       setPlayerStore({
         playbackState: 'none',
+        isLoadingStream: false,
         status: state.error
       });
       setStore('snackbar', {
@@ -288,6 +292,11 @@ createRoot(() => {
 
     setPlayerStore({
       playbackState: nextState,
+      isLoadingStream: nextState === 'loading'
+        ? true
+        : nextState === 'playing'
+          ? false
+          : playerStore.isLoadingStream,
       status: nextState === 'loading' ? 'Loading Audio...' : '',
       fullDuration: currentDuration || playerStore.fullDuration,
       volume: isNativeApp && !playerStore.isWatching
@@ -327,7 +336,7 @@ createRoot(() => {
   }, 500);
 
   playerStore.audio.onloadstart = () => {
-    setPlayerStore('playbackState', 'paused');
+    setPlayerStore({ playbackState: 'paused', isLoadingStream: true });
     setPlayerStore('status', '');
     if (isPlayable) playerStore.audio.play();
 
@@ -337,7 +346,7 @@ createRoot(() => {
   }
 
   playerStore.audio.onwaiting = () => {
-    setPlayerStore('playbackState', 'loading')
+    setPlayerStore({ playbackState: 'loading', isLoadingStream: true });
   };
 
   playerStore.audio.ontimeupdate = () => {
